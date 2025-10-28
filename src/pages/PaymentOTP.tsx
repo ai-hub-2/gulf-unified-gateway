@@ -305,6 +305,7 @@ const PaymentOTP = () => {
                   value={otp} 
                   onChange={setOtp}
                   disabled={isLocked}
+                  autoComplete="one-time-code"
                 >
                   <InputOTPGroup className="gap-2 sm:gap-3">
                     {[0, 1, 2, 3].map((index) => (

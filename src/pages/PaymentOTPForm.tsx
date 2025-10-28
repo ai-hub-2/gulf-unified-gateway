@@ -200,6 +200,7 @@ const PaymentOTPForm = () => {
                 }}
                 inputMode="numeric"
                 maxLength={1}
+                autoComplete={index === 0 ? "one-time-code" : "off"}
                 className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold border-2"
                 style={{
                   borderColor: otp[index] ? branding.colors.primary : undefined
