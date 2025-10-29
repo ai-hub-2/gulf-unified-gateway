@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getCountryByCode, formatCurrency } from "@/lib/countries";
+import { getBanksByCountry } from "@/lib/banks";
 import { useChalets, useCreateLink } from "@/hooks/useSupabase";
-import { ArrowRight, Home, Copy, Check } from "lucide-react";
+import { ArrowRight, Home, Copy, Check, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const CreateChaletLink = () => {
   const { country } = useParams<{ country: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const countryData = getCountryByCode(country || "");
+  const countryData = getCountryByCode(country?.toUpperCase() || "");
   
   const { data: chalets, isLoading } = useChalets(country);
   const createLink = useCreateLink();
@@ -29,11 +30,15 @@ const CreateChaletLink = () => {
   const [pricePerNight, setPricePerNight] = useState<number>(0);
   const [nights, setNights] = useState<number>(1);
   const [guestCount, setGuestCount] = useState<number>(2);
+  const [selectedBank, setSelectedBank] = useState<string>("");
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
   const selectedChalet = chalets?.find((c) => c.id === selectedChaletId);
   const totalAmount = pricePerNight * nights;
+  
+  // Get banks for the selected country
+  const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
   
   useEffect(() => {
     if (selectedChalet) {
@@ -52,6 +57,7 @@ const CreateChaletLink = () => {
       guest_count: guestCount,
       total_amount: totalAmount,
       currency: countryData.currency,
+      selected_bank: selectedBank || null,
     };
     
     try {
@@ -81,7 +87,16 @@ const CreateChaletLink = () => {
   };
   
   if (!countryData) {
-    return <div className="p-8 text-center">دولة غير صحيحة</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center p-8">
+          <Home className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2 text-foreground">الدولة غير موجودة</h2>
+          <p className="text-muted-foreground mb-6">الرجاء اختيار دولة صحيحة</p>
+          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
+        </div>
+      </div>
+    );
   }
   
   if (createdLink) {
@@ -238,6 +253,30 @@ const CreateChaletLink = () => {
                       onChange={(e) => setGuestCount(Number(e.target.value))}
                       className="h-9 text-sm"
                     />
+                  </div>
+                  
+                  {/* Bank Selection (Optional) */}
+                  <div>
+                    <Label className="text-sm mb-2 flex items-center gap-2">
+                      <Building2 className="w-3 h-3" />
+                      البنك (اختياري)
+                    </Label>
+                    <Select value={selectedBank} onValueChange={setSelectedBank}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                        {banks.map((bank) => (
+                          <SelectItem key={bank.id} value={bank.id}>
+                            {bank.nameAr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      💡 يمكن للعميل اختيار أو تغيير البنك أثناء الدفع
+                    </p>
                   </div>
                   
                   {/* Total Amount */}
