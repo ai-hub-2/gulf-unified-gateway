@@ -23,8 +23,25 @@ export function createDataHash(data: any): string {
 }
 
 /**
+ * Converts a hex string to UUID v4 format
+ */
+function hexToUUID(hex: string): string {
+  // Ensure we have at least 32 hex characters
+  const paddedHex = hex.padEnd(32, '0').substring(0, 32);
+  
+  // Format as UUID: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  return [
+    paddedHex.substring(0, 8),
+    paddedHex.substring(8, 12),
+    '4' + paddedHex.substring(13, 16), // Version 4
+    ((parseInt(paddedHex[16], 16) & 0x3) | 0x8).toString(16) + paddedHex.substring(17, 20), // Variant
+    paddedHex.substring(20, 32)
+  ].join('-');
+}
+
+/**
  * Creates a unique link ID based on the payload data
- * Combines a timestamp hash with data hash for uniqueness
+ * Returns a valid UUID format to match database schema
  */
 export function generateUniqueLinkId(payload: any, type: string, countryCode: string): string {
   try {
@@ -33,22 +50,28 @@ export function generateUniqueLinkId(payload: any, type: string, countryCode: st
       ...payload,
       type,
       countryCode,
-      timestamp: Math.floor(Date.now() / (1000 * 60 * 60)), // Hour-level granularity
+      // Remove timestamp for deterministic hashing (same data = same link)
     });
     
-    // Create a short unique identifier
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
+    // Create additional hash from timestamp for uniqueness
+    const timeHash = createDataHash({
+      timestamp: Math.floor(Date.now() / 1000), // Second-level granularity
+    });
     
-    // Combine all parts for a unique but deterministic ID
-    const linkId = `${timestamp}-${dataHash}-${random}`.substring(0, 50);
+    // Combine hashes to create a longer hex string
+    const combinedHash = (dataHash + timeHash + Math.random().toString(16).substring(2)).substring(0, 32);
     
-    // Ensure linkId is valid (fallback to UUID if needed)
-    if (!linkId || linkId.length < 10) {
-      return crypto.randomUUID();
+    // Convert to UUID format
+    const uuid = hexToUUID(combinedHash);
+    
+    // Validate UUID format (basic check)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(uuid)) {
+      return uuid;
     }
     
-    return linkId;
+    // Fallback to crypto.randomUUID() if format is invalid
+    return crypto.randomUUID();
   } catch (error) {
     console.error('Error generating link ID:', error);
     // Fallback to UUID if hash generation fails
