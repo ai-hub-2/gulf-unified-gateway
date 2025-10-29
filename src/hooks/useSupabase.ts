@@ -107,14 +107,38 @@ export const useCreateLink = () => {
       provider_id?: string;
       payload: any;
     }) => {
-      const linkId = crypto.randomUUID();
+      // Import link utilities
+      const { generateUniqueLinkId, normalizePayload } = await import("@/lib/linkUtils");
+      
+      // Normalize payload for consistent hashing
+      const normalizedPayload = normalizePayload({
+        ...linkData.payload,
+        country_code: linkData.country_code,
+        type: linkData.type,
+      });
+      
+      // Generate unique link ID based on data
+      const linkId = generateUniqueLinkId(normalizedPayload, linkData.type, linkData.country_code);
+      
       const micrositeUrl = `${window.location.origin}/r/${linkData.country_code}/${linkData.type}/${linkId}`;
       const paymentUrl = `${window.location.origin}/pay/${linkId}`;
       
-      // Simple signature (in production, use HMAC)
-      // Use encodeURIComponent to handle Arabic and other Unicode characters
-      const signature = btoa(encodeURIComponent(JSON.stringify(linkData.payload)));
+      // Create signature from normalized payload
+      const signature = btoa(encodeURIComponent(JSON.stringify(normalizedPayload)));
       
+      // Check if link with same ID already exists
+      const { data: existingLink } = await (supabase as any)
+        .from("links")
+        .select("id")
+        .eq("id", linkId)
+        .maybeSingle();
+      
+      if (existingLink) {
+        // If link exists, return it (same data should produce same link)
+        return existingLink as Link;
+      }
+      
+      // Insert new link
       const { data, error } = await (supabase as any)
         .from("links")
         .insert({
@@ -122,7 +146,7 @@ export const useCreateLink = () => {
           type: linkData.type,
           country_code: linkData.country_code,
           provider_id: linkData.provider_id,
-          payload: linkData.payload,
+          payload: normalizedPayload,
           microsite_url: micrositeUrl,
           payment_url: paymentUrl,
           signature,
@@ -131,7 +155,21 @@ export const useCreateLink = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // If error is due to duplicate, try to fetch existing link
+        if (error.code === '23505') { // Unique constraint violation
+          const { data: existing } = await (supabase as any)
+            .from("links")
+            .select("*")
+            .eq("id", linkId)
+            .single();
+          if (existing) {
+            return existing as Link;
+          }
+        }
+        throw error;
+      }
+      
       return data as Link;
     },
     onSuccess: () => {
@@ -161,6 +199,11 @@ export const useLink = (linkId?: string) => {
           throw new Error("Link ID is required");
         }
         
+        // Validate linkId format
+        if (typeof linkId !== 'string' || linkId.length < 10) {
+          throw new Error("Invalid link ID format");
+        }
+        
         const { data, error } = await (supabase as any)
           .from("links")
           .select("*")
@@ -168,22 +211,41 @@ export const useLink = (linkId?: string) => {
           .single();
         
         if (error) {
+          // Check if it's a "not found" error
+          if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+            throw new Error("الرابط غير موجود");
+          }
           console.error("Error fetching link:", error);
-          throw error;
+          throw new Error(error.message || "حدث خطأ أثناء تحميل الرابط");
         }
         
         if (!data) {
-          throw new Error("Link not found");
+          throw new Error("الرابط غير موجود");
+        }
+        
+        // Validate link data structure
+        if (!data.payload || !data.type) {
+          throw new Error("الرابط غير صحيح");
         }
         
         return data as Link;
-      } catch (err) {
+      } catch (err: any) {
         console.error("useLink error:", err);
-        throw err;
+        // Return a user-friendly error message
+        if (err instanceof Error) {
+          throw err;
+        }
+        throw new Error("حدث خطأ أثناء تحميل الرابط");
       }
     },
-    enabled: !!linkId,
-    retry: 2,
+    enabled: !!linkId && typeof linkId === 'string' && linkId.length > 0,
+    retry: (failureCount, error: any) => {
+      // Don't retry on "not found" errors
+      if (error?.message?.includes('غير موجود')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

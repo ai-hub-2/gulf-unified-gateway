@@ -45,7 +45,24 @@ const Microsite = () => {
   }
   
   if (isError || error) {
-    console.error('Microsite error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Microsite error:', { error, message: errorMessage, country, type, id });
+    
+    // Don't show error UI if it's just a loading/not found issue
+    if (errorMessage.includes('غير موجود') || errorMessage.includes('not found')) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+          <Card className="max-w-md mx-4 p-8 text-center">
+            <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
+            <p className="text-muted-foreground mb-4">الرجاء التحقق من الرابط</p>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              العودة للرئيسية
+            </Button>
+          </Card>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
         <Card className="max-w-md mx-4 p-8 text-center">
@@ -54,7 +71,7 @@ const Microsite = () => {
           </div>
           <h2 className="text-2xl font-bold mb-2 text-foreground">حدث خطأ</h2>
           <p className="text-muted-foreground mb-4">
-            {error?.message || "حدث خطأ أثناء تحميل الرابط"}
+            {errorMessage || "حدث خطأ أثناء تحميل الرابط"}
           </p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => window.location.reload()}>
