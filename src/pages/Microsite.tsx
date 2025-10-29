@@ -19,29 +19,67 @@ import {
   Truck,
   Hash,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 
 const Microsite = () => {
   const { country, type, id } = useParams();
   const navigate = useNavigate();
-  const { data: link, isLoading, error } = useLink(id);
+  const { data: link, isLoading, error, isError } = useLink(id);
   const countryData = getCountryByCode(country || "");
+  
+  // Log for debugging
+  React.useEffect(() => {
+    console.log('Microsite render:', { country, type, id, isLoading, isError, hasLink: !!link, hasError: !!error });
+  }, [country, type, id, isLoading, isError, link, error]);
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-xl">جاري التحميل...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center">
+          <div className="animate-pulse text-xl mb-4">جاري التحميل...</div>
+          <div className="text-sm text-muted-foreground">يرجى الانتظار</div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isError || error) {
+    console.error('Microsite error:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <Card className="max-w-md mx-4 p-8 text-center">
+          <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-foreground">حدث خطأ</h2>
+          <p className="text-muted-foreground mb-4">
+            {error?.message || "حدث خطأ أثناء تحميل الرابط"}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => window.location.reload()}>
+              <RefreshCw className="w-4 h-4 ml-2" />
+              إعادة المحاولة
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              العودة للرئيسية
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
   
   if (!link || !countryData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">الرابط غير موجود</h2>
-          <p className="text-muted-foreground">الرجاء التحقق من الرابط</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <Card className="max-w-md mx-4 p-8 text-center">
+          <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
+          <p className="text-muted-foreground mb-4">الرجاء التحقق من الرابط</p>
+          <Button variant="outline" onClick={() => navigate("/")}>
+            العودة للرئيسية
+          </Button>
+        </Card>
       </div>
     );
   }

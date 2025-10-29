@@ -156,16 +156,36 @@ export const useLink = (linkId?: string) => {
   return useQuery({
     queryKey: ["link", linkId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("links")
-        .select("*")
-        .eq("id", linkId!)
-        .single();
-      
-      if (error) throw error;
-      return data as Link;
+      try {
+        if (!linkId) {
+          throw new Error("Link ID is required");
+        }
+        
+        const { data, error } = await (supabase as any)
+          .from("links")
+          .select("*")
+          .eq("id", linkId)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching link:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          throw new Error("Link not found");
+        }
+        
+        return data as Link;
+      } catch (err) {
+        console.error("useLink error:", err);
+        throw err;
+      }
     },
     enabled: !!linkId,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

@@ -2,16 +2,60 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('Supabase environment variables are missing!');
+  console.error('VITE_SUPABASE_URL:', SUPABASE_URL ? 'Present' : 'Missing');
+  console.error('VITE_SUPABASE_PUBLISHABLE_KEY:', SUPABASE_PUBLISHABLE_KEY ? 'Present' : 'Missing');
+}
+
+// Create Supabase client with safe fallback
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+
+try {
+  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+    supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
+  } else {
+    console.warn('Supabase client not initialized due to missing environment variables');
   }
-});
+} catch (error) {
+  console.error('Error creating Supabase client:', error);
+}
+
+// Create a safe wrapper for supabase instance
+const createSafeSupabaseClient = () => {
+  if (!supabaseInstance) {
+    // Return a mock client that always returns errors but doesn't crash
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Supabase not configured', code: 'CONFIG_ERROR' } 
+            })
+          })
+        })
+      })
+    } as any;
+  }
+  return supabaseInstance;
+};
+
+export const supabase = createSafeSupabaseClient() as ReturnType<typeof createClient<Database>>;
+
+export const isSupabaseConfigured = () => {
+  return !!supabaseInstance;
+};
