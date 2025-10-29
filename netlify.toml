@@ -2,6 +2,9 @@
   publish = "dist"
   command = "npm run build"
 
+[context.production]
+  site = "nfp_ccsFPmt165aa1zwVVSM8JgENK5EdnPA312ff"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
