@@ -27,26 +27,43 @@ export function createDataHash(data: any): string {
  * Combines a timestamp hash with data hash for uniqueness
  */
 export function generateUniqueLinkId(payload: any, type: string, countryCode: string): string {
-  // Create hash from payload data
-  const dataHash = createDataHash({
-    ...payload,
-    type,
-    countryCode,
-    timestamp: Math.floor(Date.now() / (1000 * 60 * 60)), // Hour-level granularity
-  });
-  
-  // Create a short unique identifier
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  
-  // Combine all parts for a unique but deterministic ID
-  return `${timestamp}-${dataHash}-${random}`.substring(0, 50);
+  try {
+    // Create hash from payload data
+    const dataHash = createDataHash({
+      ...payload,
+      type,
+      countryCode,
+      timestamp: Math.floor(Date.now() / (1000 * 60 * 60)), // Hour-level granularity
+    });
+    
+    // Create a short unique identifier
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    
+    // Combine all parts for a unique but deterministic ID
+    const linkId = `${timestamp}-${dataHash}-${random}`.substring(0, 50);
+    
+    // Ensure linkId is valid (fallback to UUID if needed)
+    if (!linkId || linkId.length < 10) {
+      return crypto.randomUUID();
+    }
+    
+    return linkId;
+  } catch (error) {
+    console.error('Error generating link ID:', error);
+    // Fallback to UUID if hash generation fails
+    return crypto.randomUUID();
+  }
 }
 
 /**
  * Validates and normalizes payload data for consistent hashing
  */
 export function normalizePayload(payload: any): any {
+  if (!payload || typeof payload !== 'object') {
+    return payload || {};
+  }
+  
   const normalized: any = {};
   
   // Sort keys and normalize values
@@ -58,6 +75,10 @@ export function normalizePayload(payload: any): any {
         normalized[key] = parseFloat(value.toFixed(2));
       } else if (typeof value === 'string') {
         normalized[key] = value.trim();
+      } else if (Array.isArray(value)) {
+        normalized[key] = value;
+      } else if (typeof value === 'object') {
+        normalized[key] = value;
       } else {
         normalized[key] = value;
       }

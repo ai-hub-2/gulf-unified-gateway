@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { generateUniqueLinkId, normalizePayload } from "@/lib/linkUtils";
 
 // Types from database
 export interface Chalet {
@@ -107,9 +108,6 @@ export const useCreateLink = () => {
       provider_id?: string;
       payload: any;
     }) => {
-      // Import link utilities
-      const { generateUniqueLinkId, normalizePayload } = await import("@/lib/linkUtils");
-      
       // Normalize payload for consistent hashing
       const normalizedPayload = normalizePayload({
         ...linkData.payload,
