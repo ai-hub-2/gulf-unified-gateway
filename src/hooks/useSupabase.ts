@@ -222,8 +222,13 @@ export const useLink = (linkId?: string) => {
         }
         
         // Validate link data structure
-        if (!data.payload || !data.type) {
+        if (!data.type) {
           throw new Error("الرابط غير صحيح");
+        }
+        
+        // Ensure payload exists (can be empty object)
+        if (!data.payload) {
+          data.payload = {};
         }
         
         return data as Link;

@@ -26,17 +26,27 @@ export function createDataHash(data: any): string {
  * Converts a hex string to UUID v4 format
  */
 function hexToUUID(hex: string): string {
-  // Ensure we have at least 32 hex characters
-  const paddedHex = hex.padEnd(32, '0').substring(0, 32);
+  // Ensure we have at least 32 hex characters, pad with random if needed
+  let paddedHex = hex.replace(/[^0-9a-f]/gi, '').toLowerCase();
+  
+  // If not enough characters, pad with random hex
+  while (paddedHex.length < 32) {
+    paddedHex += Math.random().toString(16).substring(2);
+  }
+  paddedHex = paddedHex.substring(0, 32);
   
   // Format as UUID: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  return [
-    paddedHex.substring(0, 8),
-    paddedHex.substring(8, 12),
-    '4' + paddedHex.substring(13, 16), // Version 4
-    ((parseInt(paddedHex[16], 16) & 0x3) | 0x8).toString(16) + paddedHex.substring(17, 20), // Variant
-    paddedHex.substring(20, 32)
-  ].join('-');
+  // UUID v4 format requires: version 4 and variant bits
+  const part1 = paddedHex.substring(0, 8);
+  const part2 = paddedHex.substring(8, 12);
+  // Version 4: first character of third part must be 4
+  const part3 = '4' + paddedHex.substring(13, 16);
+  // Variant: first character of fourth part must be 8, 9, a, or b
+  const variantDigit = ((parseInt(paddedHex[16] || '0', 16) & 0x3) | 0x8).toString(16);
+  const part4 = variantDigit + paddedHex.substring(17, 20);
+  const part5 = paddedHex.substring(20, 32);
+  
+  return `${part1}-${part2}-${part3}-${part4}-${part5}`;
 }
 
 /**

