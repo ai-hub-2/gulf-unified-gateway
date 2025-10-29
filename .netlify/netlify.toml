@@ -2,6 +2,7 @@ functionsDirectory = "/workspace/netlify/functions"
 functionsDirectoryOrigin = "default"
 headersOrigin = "config"
 redirectsOrigin = "config"
+site = "nfp_ccsFPmt165aa1zwVVSM8JgENK5EdnPA312ff"
 plugins = []
 
 [build]
@@ -37,30 +38,6 @@ X-Frame-Options = "SAMEORIGIN"
 X-Content-Type-Options = "nosniff"
 X-XSS-Protection = "1; mode=block"
 Referrer-Policy = "strict-origin-when-cross-origin"
-
-[[redirects]]
-from = "/r/*"
-to = "/.netlify/functions/microsite-meta"
-status = 200.0
-force = false
-
-[redirects.query]
-
-[redirects.conditions]
-
-[redirects.headers]
-
-[[redirects]]
-from = "/pay/*"
-to = "/.netlify/functions/microsite-meta"
-status = 200.0
-force = false
-
-[redirects.query]
-
-[redirects.conditions]
-
-[redirects.headers]
 
 [[redirects]]
 from = "/*"
