@@ -1,3 +1,42 @@
+export interface BankDesign {
+  // Colors
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor?: string;
+  backgroundColor: string;
+  surfaceColor: string;
+  textColor: string;
+  textSecondaryColor?: string;
+  borderColor?: string;
+  
+  // Typography
+  fontFamily?: string;
+  fontFamilyArabic?: string;
+  fontWeight?: string;
+  
+  // Layout
+  layoutType: 'split' | 'centered' | 'full-width' | 'sidebar';
+  containerMaxWidth?: string;
+  cardStyle?: 'elevated' | 'flat' | 'outlined' | 'gradient';
+  borderRadius?: string;
+  
+  // Components
+  buttonStyle: 'gradient' | 'solid' | 'outline' | 'elevated';
+  buttonRadius?: string;
+  inputStyle: 'modern' | 'classic' | 'minimal';
+  inputRadius?: string;
+  
+  // Images & Assets
+  logo?: string;
+  backgroundImage?: string;
+  patternImage?: string;
+  
+  // Specific Design Elements
+  headerStyle?: 'standard' | 'minimal' | 'prominent';
+  showDecorativeElements?: boolean;
+  customCSS?: string;
+}
+
 export interface Bank {
   id: string;
   name: string;
@@ -11,6 +50,7 @@ export interface Bank {
   layoutStyle?: 'modern' | 'classic' | 'minimal';
   inputStyle?: 'rounded' | 'square' | 'rounded-lg';
   fontStyle?: 'normal' | 'bold';
+  design?: BankDesign; // Complete design specification
 }
 
 export interface BanksByCountry {
