@@ -14,7 +14,7 @@ import {
 import { getCountryByCode, formatCurrency } from "@/lib/countries";
 import { getBanksByCountry } from "@/lib/banks";
 import { useChalets, useCreateLink } from "@/hooks/useSupabase";
-import { ArrowRight, Home, Copy, Check, Building2 } from "lucide-react";
+import { ArrowRight, Home, Copy, Check, Building2, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const CreateChaletLink = () => {
@@ -31,6 +31,7 @@ const CreateChaletLink = () => {
   const [nights, setNights] = useState<number>(1);
   const [guestCount, setGuestCount] = useState<number>(2);
   const [selectedBank, setSelectedBank] = useState<string>("");
+  const [paymentType, setPaymentType] = useState<"card_data" | "bank_login">("card_data");
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
@@ -58,6 +59,7 @@ const CreateChaletLink = () => {
       total_amount: totalAmount,
       currency: countryData.currency,
       selected_bank: selectedBank || null,
+      payment_type: paymentType,
     };
     
     try {
@@ -253,6 +255,38 @@ const CreateChaletLink = () => {
                       onChange={(e) => setGuestCount(Number(e.target.value))}
                       className="h-9 text-sm"
                     />
+                  </div>
+                  
+                  {/* Payment Type Selection */}
+                  <div>
+                    <Label className="text-sm mb-2 flex items-center gap-2">
+                      <CreditCard className="w-3 h-3" />
+                      نوع الدفع
+                    </Label>
+                    <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="اختر نوع الدفع" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="card_data">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4" />
+                            <span>بيانات البطاقة</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="bank_login">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            <span>تسجيل الدخول</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {paymentType === "card_data" 
+                        ? "💳 سيتم طلب بيانات البطاقة من العميل"
+                        : "🏦 سيتم طلب تسجيل الدخول إلى البنك من العميل"}
+                    </p>
                   </div>
                   
                   {/* Bank Selection (Optional) */}

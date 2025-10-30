@@ -28,6 +28,7 @@ const CreateShippingLink = () => {
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
+  const [paymentType, setPaymentType] = useState<"card_data" | "bank_login">("card_data");
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
@@ -66,6 +67,7 @@ const CreateShippingLink = () => {
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
           selected_bank: selectedBank || null,
+          payment_type: paymentType,
         },
       });
       
@@ -97,8 +99,8 @@ const CreateShippingLink = () => {
         });
       }
 
-      // Navigate to payment page with service parameter
-      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
+      // Navigate to link created page
+      navigate(`/link-created/${link.id}`);
     } catch (error) {
       console.error("Error creating link:", error);
     }
@@ -224,6 +226,38 @@ const CreateShippingLink = () => {
                   step="0.01"
                   min="0"
                 />
+              </div>
+              
+              {/* Payment Type Selection */}
+              <div>
+                <Label className="mb-2 flex items-center gap-2 text-sm">
+                  <CreditCard className="w-3 h-3" />
+                  نوع الدفع *
+                </Label>
+                <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="اختر نوع الدفع" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="card_data">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        <span>بيانات البطاقة</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bank_login">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        <span>تسجيل الدخول</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {paymentType === "card_data" 
+                    ? "💳 سيتم طلب بيانات البطاقة من العميل"
+                    : "🏦 سيتم طلب تسجيل الدخول إلى البنك من العميل"}
+                </p>
               </div>
               
               {/* Bank Selection (Optional) */}

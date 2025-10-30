@@ -268,7 +268,12 @@ const Microsite = () => {
               <Button
                 size="lg"
                 className="w-full text-xl py-7 shadow-glow animate-pulse-glow"
-                onClick={() => navigate(`/pay/${link.id}/recipient`)}
+                onClick={() => {
+                  // Store payment type in sessionStorage for the payment flow
+                  const paymentType = payload.payment_type || "card_data";
+                  sessionStorage.setItem('paymentType', paymentType);
+                  navigate(`/pay/${link.id}/recipient`);
+                }}
               >
                 <CreditCard className="w-6 h-6 ml-3" />
                 <span>ادفع الآن</span>
