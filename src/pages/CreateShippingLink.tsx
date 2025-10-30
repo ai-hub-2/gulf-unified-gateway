@@ -65,7 +65,7 @@ const CreateShippingLink = () => {
     try {
       const link = await createLink.mutateAsync({
         type: "shipping",
-        country_code: country || "",
+        country_code: country?.toUpperCase() || "",
         payload: {
           service_key: selectedService,
           service_name: selectedServiceData?.name || selectedService,

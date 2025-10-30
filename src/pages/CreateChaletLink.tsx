@@ -71,7 +71,7 @@ const CreateChaletLink = () => {
     try {
       const link = await createLink.mutateAsync({
         type: "chalet",
-        country_code: country!,
+        country_code: country?.toUpperCase() || "",
         provider_id: selectedChalet.provider_id || undefined,
         payload,
       });

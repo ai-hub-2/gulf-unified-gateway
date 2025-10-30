@@ -108,7 +108,7 @@ export const useCreateLink = () => {
       payload: any;
     }) => {
       const linkId = crypto.randomUUID();
-      const micrositeUrl = `${window.location.origin}/r/${linkData.country_code}/${linkData.type}/${linkId}`;
+      const micrositeUrl = `${window.location.origin}/r/${linkData.country_code.toLowerCase()}/${linkData.type}/${linkId}`;
       const paymentUrl = `${window.location.origin}/pay/${linkId}`;
       
       // Simple signature (in production, use HMAC)

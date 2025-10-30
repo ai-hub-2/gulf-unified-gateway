@@ -23,23 +23,47 @@ import {
 const Microsite = () => {
   const { country, type, id } = useParams();
   const navigate = useNavigate();
-  const { data: link, isLoading } = useLink(id);
-  const countryData = getCountryByCode(country || "");
+  const { data: link, isLoading, error } = useLink(id);
+  const countryData = getCountryByCode(country?.toUpperCase() || "");
+  
+  // Log for debugging
+  React.useEffect(() => {
+    console.log('Microsite params:', { country, type, id });
+    console.log('Link data:', link);
+    console.log('Loading:', isLoading);
+    console.log('Error:', error);
+  }, [country, type, id, link, isLoading, error]);
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(220 15% 15%)', color: 'hsl(40 10% 98%)' }}>
-        <div className="animate-pulse text-xl">جاري التحميل...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background" style={{ backgroundColor: 'hsl(220 15% 15%)' }} dir="rtl">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-xl text-foreground">جاري التحميل...</p>
+        </div>
       </div>
     );
   }
   
   if (!link || !countryData) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(220 15% 15%)', color: 'hsl(40 10% 98%)' }}>
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">الرابط غير موجود</h2>
-          <p className="text-muted-foreground">الرجاء التحقق من الرابط</p>
+      <div className="min-h-screen flex items-center justify-center bg-background" style={{ backgroundColor: 'hsl(220 15% 15%)' }} dir="rtl">
+        <div className="text-center p-8">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-3xl font-bold mb-4 text-foreground">الرابط غير موجود</h2>
+          <p className="text-muted-foreground mb-6">عذراً، الرابط الذي تحاول الوصول إليه غير صحيح أو انتهت صلاحيته</p>
+          <p className="text-sm text-muted-foreground mb-4">معلومات إضافية:</p>
+          <div className="bg-card p-4 rounded-lg text-right mb-6 max-w-md mx-auto">
+            <p className="text-xs text-muted-foreground mb-1">• الدولة: {country || 'غير محدد'}</p>
+            <p className="text-xs text-muted-foreground mb-1">• النوع: {type || 'غير محدد'}</p>
+            <p className="text-xs text-muted-foreground">• معرف الرابط: {id || 'غير محدد'}</p>
+          </div>
+          <Button 
+            onClick={() => navigate('/services')}
+            className="bg-primary text-primary-foreground"
+          >
+            العودة للصفحة الرئيسية
+          </Button>
         </div>
       </div>
     );
