@@ -9,8 +9,8 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Dark Mode Only - Gulf Platform */
-    --background: 220 25% 8%;
-    --foreground: 40 10% 96%;
+    --background: 220 25% 10%;
+    --foreground: 40 10% 98%;
 
     --card: 220 20% 14%;
     --card-foreground: 40 10% 96%;
