@@ -28,7 +28,7 @@ const Microsite = () => {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(220 15% 15%)', color: 'hsl(40 10% 98%)' }}>
         <div className="animate-pulse text-xl">جاري التحميل...</div>
       </div>
     );
@@ -36,7 +36,7 @@ const Microsite = () => {
   
   if (!link || !countryData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(220 15% 15%)', color: 'hsl(40 10% 98%)' }}>
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">الرابط غير موجود</h2>
           <p className="text-muted-foreground">الرجاء التحقق من الرابط</p>
@@ -92,7 +92,7 @@ const Microsite = () => {
         serviceName={serviceName}
         serviceDescription={serviceDescription}
       />
-      <div className="min-h-screen py-12 bg-gradient-to-b from-background to-secondary/20" dir="rtl">
+      <div className="min-h-screen py-12 bg-gradient-to-b from-background to-secondary/20" dir="rtl" style={{ minHeight: '100vh', backgroundColor: 'hsl(220 15% 15%)' }}>
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header Badge */}
