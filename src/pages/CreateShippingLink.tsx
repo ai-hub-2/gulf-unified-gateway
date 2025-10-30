@@ -240,16 +240,10 @@ const CreateShippingLink = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
                     <SelectItem value="card_data">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        <span>بيانات البطاقة</span>
-                      </div>
+                      💳 بيانات البطاقة
                     </SelectItem>
                     <SelectItem value="bank_login">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>تسجيل الدخول</span>
-                      </div>
+                      🏦 تسجيل الدخول
                     </SelectItem>
                   </SelectContent>
                 </Select>
