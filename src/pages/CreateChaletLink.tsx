@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/mobile-select";
 import { getCountryByCode, formatCurrency } from "@/lib/countries";
 import { getBanksByCountry } from "@/lib/banks";
 import { useChalets, useCreateLink } from "@/hooks/useSupabase";
@@ -34,12 +35,17 @@ const CreateChaletLink = () => {
   const [paymentType, setPaymentType] = useState<"card_data" | "bank_login">("card_data");
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const selectedChalet = chalets?.find((c) => c.id === selectedChaletId);
   const totalAmount = pricePerNight * nights;
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
+  
+  useEffect(() => {
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }, []);
   
   useEffect(() => {
     if (selectedChalet) {
@@ -183,18 +189,28 @@ const CreateChaletLink = () => {
               {/* Chalet Selection */}
               <div>
                 <Label className="text-sm mb-2">اختر الشاليه</Label>
-                <Select onValueChange={setSelectedChaletId} disabled={isLoading}>
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder={isLoading ? "جاري التحميل..." : "اختر شاليه..."} />
-                  </SelectTrigger>
-                  <SelectContent>
+                {isMobile ? (
+                  <MobileSelect value={selectedChaletId} onValueChange={setSelectedChaletId} disabled={isLoading} placeholder={isLoading ? "جاري التحميل..." : "اختر شاليه..."}>
                     {chalets?.map((chalet) => (
-                      <SelectItem key={chalet.id} value={chalet.id}>
+                      <MobileSelectItem key={chalet.id} value={chalet.id}>
                         {chalet.name} {chalet.verified && "✓"}
-                      </SelectItem>
+                      </MobileSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </MobileSelect>
+                ) : (
+                  <Select onValueChange={setSelectedChaletId} disabled={isLoading}>
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder={isLoading ? "جاري التحميل..." : "اختر شاليه..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chalets?.map((chalet) => (
+                        <SelectItem key={chalet.id} value={chalet.id}>
+                          {chalet.name} {chalet.verified && "✓"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               
               {selectedChalet && (
@@ -256,19 +272,30 @@ const CreateChaletLink = () => {
                       <CreditCard className="w-3 h-3" />
                       نوع الدفع
                     </Label>
-                    <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="اختر نوع الدفع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="card_data">
+                    {isMobile ? (
+                      <MobileSelect value={paymentType} onValueChange={(value: string) => setPaymentType(value as "card_data" | "bank_login")} placeholder="اختر نوع الدفع">
+                        <MobileSelectItem value="card_data">
                           💳 بيانات البطاقة
-                        </SelectItem>
-                        <SelectItem value="bank_login">
+                        </MobileSelectItem>
+                        <MobileSelectItem value="bank_login">
                           🏦 تسجيل الدخول
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                        </MobileSelectItem>
+                      </MobileSelect>
+                    ) : (
+                      <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="اختر نوع الدفع" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="card_data">
+                            💳 بيانات البطاقة
+                          </SelectItem>
+                          <SelectItem value="bank_login">
+                            🏦 تسجيل الدخول
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       {paymentType === "card_data" 
                         ? "💳 سيتم طلب بيانات البطاقة من العميل"
@@ -282,19 +309,30 @@ const CreateChaletLink = () => {
                       <Building2 className="w-3 h-3" />
                       البنك (اختياري)
                     </Label>
-                    <Select value={selectedBank} onValueChange={setSelectedBank}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                    {isMobile ? (
+                      <MobileSelect value={selectedBank} onValueChange={setSelectedBank} placeholder="اختر بنك (يمكن التخطي)">
+                        <MobileSelectItem value="skip">بدون تحديد بنك</MobileSelectItem>
                         {banks.map((bank) => (
-                          <SelectItem key={bank.id} value={bank.id}>
+                          <MobileSelectItem key={bank.id} value={bank.id}>
                             {bank.nameAr}
-                          </SelectItem>
+                          </MobileSelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </MobileSelect>
+                    ) : (
+                      <Select value={selectedBank} onValueChange={setSelectedBank}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                          {banks.map((bank) => (
+                            <SelectItem key={bank.id} value={bank.id}>
+                              {bank.nameAr}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       💡 يمكن للعميل اختيار أو تغيير البنك أثناء الدفع
                     </p>

