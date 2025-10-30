@@ -150,7 +150,7 @@ const CreateShippingLink = () => {
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="اختر خدمة الشحن" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent>
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.key}>
                         {service.name}
@@ -238,7 +238,7 @@ const CreateShippingLink = () => {
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="اختر نوع الدفع" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent>
                     <SelectItem value="card_data">
                       💳 بيانات البطاقة
                     </SelectItem>
@@ -264,7 +264,7 @@ const CreateShippingLink = () => {
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent>
                     <SelectItem value="skip">بدون تحديد بنك</SelectItem>
                     {banks.map((bank) => (
                       <SelectItem key={bank.id} value={bank.id}>

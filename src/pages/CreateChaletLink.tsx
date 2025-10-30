@@ -190,14 +190,7 @@ const CreateChaletLink = () => {
                   <SelectContent>
                     {chalets?.map((chalet) => (
                       <SelectItem key={chalet.id} value={chalet.id}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{chalet.name}</span>
-                          {chalet.verified && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                              موثّق
-                            </span>
-                          )}
-                        </div>
+                        {chalet.name} {chalet.verified && "✓"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -267,7 +260,7 @@ const CreateChaletLink = () => {
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="اختر نوع الدفع" />
                       </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
+                      <SelectContent>
                         <SelectItem value="card_data">
                           💳 بيانات البطاقة
                         </SelectItem>
