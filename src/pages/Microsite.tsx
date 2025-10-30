@@ -28,10 +28,25 @@ const Microsite = () => {
   
   // Log for debugging
   React.useEffect(() => {
-    console.log('Microsite params:', { country, type, id });
-    console.log('Link data:', link);
-    console.log('Loading:', isLoading);
-    console.log('Error:', error);
+    console.log('Microsite Debug Info:', {
+      country,
+      type,
+      id,
+      countryUpperCase: country?.toUpperCase(),
+      linkExists: !!link,
+      isLoading,
+      hasError: !!error,
+      errorMessage: error?.message || 'No error'
+    });
+    if (link) {
+      console.log('Link Data:', {
+        linkId: link.id,
+        linkType: link.type,
+        countryCode: link.country_code,
+        hasPayload: !!link.payload,
+        payloadKeys: link.payload ? Object.keys(link.payload) : []
+      });
+    }
   }, [country, type, id, link, isLoading, error]);
   
   if (isLoading) {
@@ -46,24 +61,61 @@ const Microsite = () => {
   }
   
   if (!link || !countryData) {
+    const errorReason = !link ? 'الرابط غير موجود في قاعدة البيانات' : 'كود الدولة غير صحيح';
+    const suggestion = !link 
+      ? 'قد يكون الرابط منتهي الصلاحية أو تم حذفه. يرجى إنشاء رابط دفع جديد.'
+      : `كود الدولة "${country}" غير مدعوم. الدول المدعومة: SA, AE, KW, QA, OM, BH`;
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" style={{ backgroundColor: 'hsl(220 15% 15%)' }} dir="rtl">
-        <div className="text-center p-8">
-          <div className="text-6xl mb-4">❌</div>
+        <div className="text-center p-8 max-w-2xl mx-auto">
+          <div className="text-6xl mb-6">❌</div>
           <h2 className="text-3xl font-bold mb-4 text-foreground">الرابط غير موجود</h2>
-          <p className="text-muted-foreground mb-6">عذراً، الرابط الذي تحاول الوصول إليه غير صحيح أو انتهت صلاحيته</p>
-          <p className="text-sm text-muted-foreground mb-4">معلومات إضافية:</p>
-          <div className="bg-card p-4 rounded-lg text-right mb-6 max-w-md mx-auto">
-            <p className="text-xs text-muted-foreground mb-1">• الدولة: {country || 'غير محدد'}</p>
-            <p className="text-xs text-muted-foreground mb-1">• النوع: {type || 'غير محدد'}</p>
-            <p className="text-xs text-muted-foreground">• معرف الرابط: {id || 'غير محدد'}</p>
+          <p className="text-lg text-muted-foreground mb-4">{errorReason}</p>
+          <p className="text-muted-foreground mb-6">{suggestion}</p>
+          
+          <div className="bg-card/50 border border-border p-6 rounded-lg text-right mb-6">
+            <p className="text-sm font-semibold text-foreground mb-3">معلومات الرابط المطلوب:</p>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center py-1 border-b border-border/30">
+                <span className="text-muted-foreground">الدولة</span>
+                <span className="font-mono text-foreground">{country?.toUpperCase() || 'غير محدد'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-border/30">
+                <span className="text-muted-foreground">النوع</span>
+                <span className="font-mono text-foreground">{type || 'غير محدد'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-muted-foreground">معرف الرابط</span>
+                <span className="font-mono text-foreground text-[10px] break-all">{id || 'غير محدد'}</span>
+              </div>
+            </div>
           </div>
-          <Button 
-            onClick={() => navigate('/services')}
-            className="bg-primary text-primary-foreground"
-          >
-            العودة للصفحة الرئيسية
-          </Button>
+
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg mb-6">
+              <p className="text-sm text-destructive">
+                <strong>رسالة الخطأ:</strong> {error.message || 'خطأ غير معروف'}
+              </p>
+            </div>
+          )}
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={() => navigate('/services')}
+              className="bg-primary text-primary-foreground"
+              size="lg"
+            >
+              إنشاء رابط دفع جديد
+            </Button>
+            <Button 
+              onClick={() => navigate('/')}
+              variant="outline"
+              size="lg"
+            >
+              العودة للصفحة الرئيسية
+            </Button>
+          </div>
         </div>
       </div>
     );

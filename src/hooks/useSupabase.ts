@@ -156,16 +156,30 @@ export const useLink = (linkId?: string) => {
   return useQuery({
     queryKey: ["link", linkId],
     queryFn: async () => {
+      if (!linkId) {
+        throw new Error("Link ID is required");
+      }
+      
       const { data, error } = await (supabase as any)
         .from("links")
         .select("*")
-        .eq("id", linkId!)
+        .eq("id", linkId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching link:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error("Link not found");
+      }
+      
       return data as Link;
     },
     enabled: !!linkId,
+    retry: 1, // Only retry once
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 };
 
