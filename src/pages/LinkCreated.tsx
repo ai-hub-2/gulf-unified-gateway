@@ -32,8 +32,29 @@ const LinkCreated = () => {
   const branding = getServiceBranding(serviceKey);
   const paymentType = linkData?.payload?.payment_type || "card_data";
   
-  // Generate the payment link
-  const paymentLink = `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}`;
+  // Generate the payment link with encoded data for sharing
+  const encodeLinkData = () => {
+    try {
+      const dataToEncode = {
+        type: linkData?.type,
+        country_code: linkData?.country_code,
+        provider_id: linkData?.provider_id,
+        payload: linkData?.payload,
+        microsite_url: linkData?.microsite_url,
+        payment_url: linkData?.payment_url,
+        signature: linkData?.signature,
+        status: linkData?.status,
+        created_at: linkData?.created_at,
+      };
+      return btoa(JSON.stringify(dataToEncode));
+    } catch (e) {
+      console.error('Failed to encode link data:', e);
+      return '';
+    }
+  };
+  
+  const encodedData = encodeLinkData();
+  const paymentLink = `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(paymentLink);
