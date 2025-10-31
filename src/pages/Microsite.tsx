@@ -47,6 +47,9 @@ const Microsite = () => {
   
   const payload = link.payload;
   
+  // Determine if it's a shipping or chalet link
+  const isShipping = link.type === 'shipping';
+  
   // Get service branding for SEO and display
   const serviceName = payload.service_name || payload.chalet_name;
   const serviceKey = payload.service_key || 'aramex';
@@ -65,12 +68,6 @@ const Microsite = () => {
   const allServices = Object.values(gccShippingServices).flat();
   const serviceData = allServices.find(s => s.key === serviceKey);
   const serviceDescription = serviceData?.description || `خدمة ${serviceName} - نظام دفع آمن ومحمي`;
-  
-  // Determine if it's a shipping or chalet link
-  const isShipping = link.type === 'shipping';
-  const displayName = isShipping 
-    ? `شحنة ${serviceName}` 
-    : payload.chalet_name;
   
   // SEO metadata
   const seoTitle = isShipping 

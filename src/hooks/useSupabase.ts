@@ -108,8 +108,26 @@ export const useCreateLink = () => {
       payload: any;
     }) => {
       const linkId = crypto.randomUUID();
-      const micrositeUrl = `${window.location.origin}/r/${linkData.country_code}/${linkData.type}/${linkId}`;
-      const paymentUrl = `${window.location.origin}/pay/${linkId}`;
+      const baseMicrositeUrl = `${window.location.origin}/r/${linkData.country_code}/${linkData.type}/${linkId}`;
+      const basePaymentUrl = `${window.location.origin}/pay/${linkId}`;
+
+      const rawServiceKey =
+        typeof linkData.payload?.service_key === "string"
+          ? linkData.payload.service_key.toLowerCase()
+          : undefined;
+      const encodedServiceKey = rawServiceKey
+        ? encodeURIComponent(rawServiceKey)
+        : undefined;
+
+      const needsServiceParam = linkData.type === "shipping" && !!encodedServiceKey;
+
+      const micrositeUrl = needsServiceParam
+        ? `${baseMicrositeUrl}?service=${encodedServiceKey}`
+        : baseMicrositeUrl;
+
+      const paymentUrl = needsServiceParam
+        ? `${basePaymentUrl}?service=${encodedServiceKey}`
+        : basePaymentUrl;
       
       // Simple signature (in production, use HMAC)
       // Use encodeURIComponent to handle Arabic and other Unicode characters

