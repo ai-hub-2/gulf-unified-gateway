@@ -29,7 +29,6 @@ const CreateShippingLink = () => {
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>("card");
-  const [selectedBank, setSelectedBank] = useState("");
   const [createdLinkUrl, setCreatedLinkUrl] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   
@@ -59,15 +58,6 @@ const CreateShippingLink = () => {
       return;
     }
 
-    if (paymentMethod === "login" && !selectedBank) {
-      toast({
-        title: "اختر البنك",
-        description: "الرجاء اختيار البنك الذي سيدخل العميل بياناته",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCreatedLinkUrl("");
     setIsCopied(false);
 
@@ -81,7 +71,6 @@ const CreateShippingLink = () => {
           tracking_number: trackingNumber,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
-          selected_bank: paymentMethod === "login" ? selectedBank : null,
           payment_method: paymentMethod,
         },
       });
@@ -98,7 +87,6 @@ const CreateShippingLink = () => {
           country: countryData.nameAr,
           payment_url: paymentUrl,
           payment_method: paymentMethod,
-          selected_bank: paymentMethod === "login" ? selectedBank : null,
         },
         timestamp: new Date().toISOString(),
       });
@@ -293,9 +281,6 @@ const CreateShippingLink = () => {
                   onValueChange={(value) => {
                     const method = value as PaymentMethodOption;
                     setPaymentMethod(method);
-                    if (method === "card") {
-                      setSelectedBank("");
-                    }
                   }}
                 >
                   <SelectTrigger className="h-9 text-sm">
@@ -313,36 +298,6 @@ const CreateShippingLink = () => {
                 </p>
               </div>
 
-              {paymentMethod === "login" && (
-                <div>
-                  <Label className="mb-2 flex items-center gap-2 text-sm">
-                    <Building2 className="w-3 h-3" />
-                    البنك المطلوب تسجيل الدخول إليه
-                  </Label>
-                  <Select value={selectedBank} onValueChange={setSelectedBank}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="اختر البنك" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      {banks.length === 0 ? (
-                        <SelectItem value="" disabled>
-                          لا توجد بنوك متاحة لهذه الدولة
-                        </SelectItem>
-                      ) : (
-                        banks.map((bank) => (
-                          <SelectItem key={bank.id} value={bank.id}>
-                            {bank.nameAr}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    سيظهر للعميل شاشة تسجيل دخول بنفس هوية البنك المختار.
-                  </p>
-                </div>
-              )}
-              
               {/* Submit Button */}
               <Button
                 type="submit"

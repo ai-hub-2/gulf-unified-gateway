@@ -31,7 +31,6 @@ const CreateChaletLink = () => {
   const [nights, setNights] = useState<number>(1);
   const [guestCount, setGuestCount] = useState<number>(2);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "login">("card");
-  const [selectedBank, setSelectedBank] = useState<string>("");
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
@@ -50,15 +49,6 @@ const CreateChaletLink = () => {
   const handleCreate = async () => {
     if (!selectedChalet || !countryData) return;
     
-    if (paymentMethod === "login" && !selectedBank) {
-      toast({
-        title: "اختر البنك",
-        description: "الرجاء تحديد البنك الذي سيدخل العميل بياناته",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     const payload = {
       chalet_id: selectedChalet.id,
       chalet_name: selectedChalet.name,
@@ -67,7 +57,6 @@ const CreateChaletLink = () => {
       guest_count: guestCount,
       total_amount: totalAmount,
       currency: countryData.currency,
-      selected_bank: paymentMethod === "login" ? selectedBank : null,
       payment_method: paymentMethod,
     };
     
@@ -277,9 +266,6 @@ const CreateChaletLink = () => {
                       onValueChange={(value) => {
                         const method = value as "card" | "login";
                         setPaymentMethod(method);
-                        if (method === "card") {
-                          setSelectedBank("");
-                        }
                       }}
                     >
                       <SelectTrigger className="h-9">
@@ -297,34 +283,10 @@ const CreateChaletLink = () => {
                     </p>
                   </div>
 
-                  {paymentMethod === "login" && (
-                    <div>
-                      <Label className="text-sm mb-2 flex items-center gap-2">
-                        <Building2 className="w-3 h-3" />
-                        البنك المطلوب تسجيل الدخول إليه
-                      </Label>
-                      <Select value={selectedBank} onValueChange={setSelectedBank}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="اختر البنك" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {banks.length === 0 ? (
-                            <SelectItem value="" disabled>
-                              لا توجد بنوك متاحة لهذه الدولة
-                            </SelectItem>
-                          ) : (
-                            banks.map((bank) => (
-                              <SelectItem key={bank.id} value={bank.id}>
-                                {bank.nameAr}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        سيظهر للعميل شاشة تسجيل دخول مطابقة لهوية البنك المختار.
-                      </p>
-                    </div>
+                  {paymentMethod === "login" && banks.length === 0 && (
+                    <p className="text-xs text-destructive">
+                      لا تتوفر بنوك لهذه الدولة حالياً، سيختار العميل البنك لاحقاً أثناء الدفع.
+                    </p>
                   )}
                   
                   {/* Total Amount */}

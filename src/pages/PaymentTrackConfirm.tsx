@@ -343,9 +343,58 @@ const PaymentTrackConfirm = () => {
                   </div>
                 </div>
               </Card>
+            ) : banks.length > 0 ? (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {banks.map((bank) => {
+                  const isActive = selectedBank === bank.id;
+                  return (
+                    <Card
+                      key={bank.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedMethod("login");
+                        setSelectedBank(bank.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedMethod("login");
+                          setSelectedBank(bank.id);
+                        }
+                      }}
+                      className={`p-4 border-2 transition-all cursor-pointer ${
+                        isActive ? "shadow-lg" : "hover:border-muted-foreground/40"
+                      }`}
+                      style={{
+                        borderColor: isActive ? bank.color || branding.colors.primary : undefined,
+                        background: isActive ? `${bank.color || branding.colors.primary}12` : undefined,
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                          style={{
+                            background: bank.color || branding.colors.primary,
+                          }}
+                        >
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{bank.nameAr}</p>
+                          <p className="text-xs text-muted-foreground">{bank.name}</p>
+                        </div>
+                        {isActive && (
+                          <CheckCircle2 className="w-5 h-5" style={{ color: bank.color || branding.colors.primary }} />
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             ) : (
-              <Card className="p-4 text-sm text-destructive border-destructive/40">
-                لم يتم تحديد بنك في هذا الرابط. يرجى إعادة إنشاء الرابط مع تحديد بنك للدخول.
+              <Card className="p-4 text-sm text-muted-foreground">
+                لا تتوفر بنوك لهذه الدولة حالياً. سيتم إكمال التحقق بناءً على اختيار العميل أثناء الدفع.
               </Card>
             )}
           </div>
