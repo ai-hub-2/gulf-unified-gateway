@@ -62,7 +62,10 @@ const LinkCreated = () => {
   
   // Generate the payment link with encoded data for sharing
   const encodedData = React.useMemo(() => {
-    if (!linkData) return '';
+    if (!linkData) {
+      console.warn('No linkData available for encoding');
+      return '';
+    }
     
     try {
       const dataToEncode = {
@@ -76,8 +79,17 @@ const LinkCreated = () => {
         status: linkData.status,
         created_at: linkData.created_at,
       };
-      const encoded = btoa(encodeURIComponent(JSON.stringify(dataToEncode)));
-      console.log('Encoded link data length:', encoded.length);
+      
+      console.log('Data to encode:', dataToEncode);
+      const jsonString = JSON.stringify(dataToEncode);
+      console.log('JSON string length:', jsonString.length);
+      
+      const uriEncoded = encodeURIComponent(jsonString);
+      console.log('URI encoded length:', uriEncoded.length);
+      
+      const encoded = btoa(uriEncoded);
+      console.log('Base64 encoded length:', encoded.length);
+      
       return encoded;
     } catch (e) {
       console.error('Failed to encode link data:', e);
@@ -85,11 +97,25 @@ const LinkCreated = () => {
     }
   }, [linkData]);
   
-  const paymentLink = encodedData 
-    ? `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`
-    : `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}`;
+  // Always ensure encodedData is present
+  const paymentLink = React.useMemo(() => {
+    if (!encodedData || encodedData.length === 0) {
+      console.error('No encoded data available for link');
+      return '';
+    }
+    return `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`;
+  }, [encodedData, countryCode, linkData?.type, id, serviceKey]);
 
   const handleCopyLink = () => {
+    if (!paymentLink) {
+      toast({
+        title: "خطأ",
+        description: "الرابط غير جاهز للنسخ",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     navigator.clipboard.writeText(paymentLink);
     setCopied(true);
     toast({
@@ -100,6 +126,16 @@ const LinkCreated = () => {
   };
 
   const handlePreview = () => {
+    if (!paymentLink) {
+      toast({
+        title: "خطأ",
+        description: "الرابط غير جاهز للمعاينة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Opening preview with link:', paymentLink);
     window.open(paymentLink, '_blank');
   };
 
@@ -117,7 +153,12 @@ const LinkCreated = () => {
         payloadKeys: linkData.payload ? Object.keys(linkData.payload) : []
       });
     }
-  }, [linkData]);
+    
+    if (encodedData) {
+      console.log('Encoded data length:', encodedData.length);
+      console.log('Full payment link:', paymentLink);
+    }
+  }, [linkData, encodedData, paymentLink]);
 
   if (isLoading) {
     return (
