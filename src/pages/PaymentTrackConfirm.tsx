@@ -45,12 +45,14 @@ const PaymentTrackConfirm = () => {
     const storedMethod = sessionStorage.getItem("paymentMethod") as PaymentMethod | null;
     const storedBank = sessionStorage.getItem("selectedBank") || "";
 
+    const defaultMethod: PaymentMethod = (payload?.payment_method === "login" ? "login" : "card");
+
     if (storedMethod) {
       setSelectedMethod(storedMethod);
     } else if (payload?.selected_bank) {
       setSelectedMethod("login");
     } else {
-      setSelectedMethod("card");
+      setSelectedMethod(defaultMethod);
     }
 
     if (storedBank) {
@@ -58,7 +60,7 @@ const PaymentTrackConfirm = () => {
     } else if (payload?.selected_bank) {
       setSelectedBank(payload.selected_bank);
     }
-  }, [payload?.selected_bank]);
+  }, [payload?.selected_bank, payload?.payment_method]);
 
   useEffect(() => {
     // Clear stale information when entering the flow fresh
