@@ -123,24 +123,22 @@ const PaymentRecipient = () => {
   };
   
   const handleCopyLink = () => {
-    const countryCode = linkData?.country_code || 'SA';
-    const linkType = linkData?.type || 'shipping';
-    const micrositeUrl = `${window.location.origin}/r/${countryCode}/${linkType}/${id}?service=${serviceKey}`;
+    // نسخ نفس الرابط الحالي
+    const currentUrl = window.location.href;
     
-    navigator.clipboard.writeText(micrositeUrl);
+    navigator.clipboard.writeText(currentUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({
       title: "تم النسخ!",
-      description: "تم نسخ رابط المشاركة إلى الحافظة",
+      description: "تم نسخ الرابط إلى الحافظة",
     });
   };
   
   const handlePreview = () => {
-    const countryCode = linkData?.country_code || 'SA';
-    const linkType = linkData?.type || 'shipping';
-    const micrositeUrl = `${window.location.origin}/r/${countryCode}/${linkType}/${id}?service=${serviceKey}`;
-    window.open(micrositeUrl, '_blank');
+    // فتح نفس الرابط الحالي في تبويب جديد
+    const currentUrl = window.location.href;
+    window.open(currentUrl, '_blank');
   };
   
   return (
