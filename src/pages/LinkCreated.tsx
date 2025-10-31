@@ -62,10 +62,7 @@ const LinkCreated = () => {
   
   // Generate the payment link with encoded data for sharing
   const encodedData = React.useMemo(() => {
-    if (!linkData) {
-      console.warn('No linkData available for encoding');
-      return '';
-    }
+    if (!linkData) return '';
     
     try {
       const dataToEncode = {
@@ -80,42 +77,23 @@ const LinkCreated = () => {
         created_at: linkData.created_at,
       };
       
-      console.log('Data to encode:', dataToEncode);
       const jsonString = JSON.stringify(dataToEncode);
-      console.log('JSON string length:', jsonString.length);
-      
       const uriEncoded = encodeURIComponent(jsonString);
-      console.log('URI encoded length:', uriEncoded.length);
-      
       const encoded = btoa(uriEncoded);
-      console.log('Base64 encoded length:', encoded.length);
       
       return encoded;
     } catch (e) {
-      console.error('Failed to encode link data:', e);
       return '';
     }
   }, [linkData]);
   
-  // Always ensure encodedData is present
+  // Create payment link with encoded data
   const paymentLink = React.useMemo(() => {
-    if (!encodedData || encodedData.length === 0) {
-      console.error('No encoded data available for link');
-      return '';
-    }
-    return `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`;
-  }, [encodedData, countryCode, linkData?.type, id, serviceKey]);
+    if (!encodedData || !linkData) return '';
+    return `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData.type}/${id}?service=${serviceKey}&d=${encodedData}`;
+  }, [encodedData, countryCode, linkData, id, serviceKey]);
 
   const handleCopyLink = () => {
-    if (!paymentLink) {
-      toast({
-        title: "خطأ",
-        description: "الرابط غير جاهز للنسخ",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     navigator.clipboard.writeText(paymentLink);
     setCopied(true);
     toast({
@@ -126,16 +104,6 @@ const LinkCreated = () => {
   };
 
   const handlePreview = () => {
-    if (!paymentLink) {
-      toast({
-        title: "خطأ",
-        description: "الرابط غير جاهز للمعاينة",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    console.log('Opening preview with link:', paymentLink);
     window.open(paymentLink, '_blank');
   };
 
@@ -143,63 +111,11 @@ const LinkCreated = () => {
     navigate(`/create/${countryCode?.toLowerCase()}/shipping`);
   };
 
-  // Debug log
-  React.useEffect(() => {
-    if (linkData) {
-      console.log('LinkCreated - Link data loaded:', {
-        id: linkData.id,
-        type: linkData.type,
-        hasPayload: !!linkData.payload,
-        payloadKeys: linkData.payload ? Object.keys(linkData.payload) : []
-      });
-    }
-    
-    if (encodedData) {
-      console.log('Encoded data length:', encodedData.length);
-      console.log('Full payment link:', paymentLink);
-    }
-  }, [linkData, encodedData, paymentLink]);
 
-  if (isLoading) {
+  if (isLoading || !linkData) {
     return (
       <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <div className="animate-pulse text-xl">جاري التحميل...</div>
-      </div>
-    );
-  }
-
-  if (!linkData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" style={{ backgroundColor: 'hsl(220 15% 15%)' }} dir="rtl">
-        <div className="text-center p-8">
-          <div className="text-6xl mb-6">⚠️</div>
-          <h2 className="text-3xl font-bold mb-4 text-foreground">خطأ في تحميل البيانات</h2>
-          <p className="text-lg text-muted-foreground mb-6">
-            لم يتم العثور على بيانات الرابط. يرجى إنشاء رابط جديد.
-          </p>
-          <Button 
-            onClick={() => navigate('/services')}
-            size="lg"
-            className="bg-primary text-primary-foreground"
-          >
-            إنشاء رابط جديد
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  // Check if encoded data is ready
-  if (!encodedData || encodedData.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" style={{ backgroundColor: 'hsl(220 15% 15%)' }} dir="rtl">
-        <div className="text-center p-8">
-          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-6"></div>
-          <h2 className="text-2xl font-bold mb-4 text-foreground">جاري تجهيز الرابط...</h2>
-          <p className="text-muted-foreground">
-            يرجى الانتظار قليلاً حتى يتم تشفير البيانات
-          </p>
-        </div>
       </div>
     );
   }
@@ -285,63 +201,40 @@ const LinkCreated = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="space-y-3 mb-6">
-          {/* Show warning if no data */}
-          {(!paymentLink || paymentLink.length === 0) && (
-            <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg">
-              <p className="text-sm text-destructive text-center">
-                ⚠️ البيانات غير جاهزة. يرجى الانتظار أو إعادة تحميل الصفحة.
-              </p>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button
-              size="lg"
-              className="w-full text-base font-semibold"
-              onClick={handleCopyLink}
-              disabled={!paymentLink || paymentLink.length === 0}
-              style={{
-                background: copied 
-                  ? '#10b981' 
-                  : `linear-gradient(135deg, ${branding.colors.primary}, ${branding.colors.secondary})`
-              }}
-            >
-              {copied ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5 ml-2" />
-                  <span>تم النسخ!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-5 h-5 ml-2" />
-                  <span>نسخ الرابط</span>
-                </>
-              )}
-            </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <Button
+            size="lg"
+            className="w-full text-base font-semibold"
+            onClick={handleCopyLink}
+            style={{
+              background: copied 
+                ? '#10b981' 
+                : `linear-gradient(135deg, ${branding.colors.primary}, ${branding.colors.secondary})`
+            }}
+          >
+            {copied ? (
+              <>
+                <CheckCircle2 className="w-5 h-5 ml-2" />
+                <span>تم النسخ!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-5 h-5 ml-2" />
+                <span>نسخ الرابط</span>
+              </>
+            )}
+          </Button>
 
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full text-base font-semibold"
-              onClick={handlePreview}
-              disabled={!paymentLink || paymentLink.length === 0}
-            >
-              <Eye className="w-5 h-5 ml-2" />
-              <span>معاينة الرابط</span>
-              <ExternalLink className="w-4 h-4 mr-2" />
-            </Button>
-          </div>
-          
-          {/* Show link status */}
-          {paymentLink && paymentLink.length > 0 && (
-            <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg">
-              <p className="text-xs text-green-600 dark:text-green-400 text-center flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                الرابط جاهز للمشاركة
-              </p>
-            </div>
-          )}
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full text-base font-semibold"
+            onClick={handlePreview}
+          >
+            <Eye className="w-5 h-5 ml-2" />
+            <span>معاينة الرابط</span>
+            <ExternalLink className="w-4 h-4 mr-2" />
+          </Button>
         </div>
 
         {/* Share Options */}

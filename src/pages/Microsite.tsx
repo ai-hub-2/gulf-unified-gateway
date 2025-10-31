@@ -26,28 +26,6 @@ const Microsite = () => {
   const { data: link, isLoading, error } = useLink(id);
   const countryData = getCountryByCode(country?.toUpperCase() || "");
   
-  // Log for debugging
-  React.useEffect(() => {
-    console.log('Microsite Debug Info:', {
-      country,
-      type,
-      id,
-      countryUpperCase: country?.toUpperCase(),
-      linkExists: !!link,
-      isLoading,
-      hasError: !!error,
-      errorMessage: error?.message || 'No error'
-    });
-    if (link) {
-      console.log('Link Data:', {
-        linkId: link.id,
-        linkType: link.type,
-        countryCode: link.country_code,
-        hasPayload: !!link.payload,
-        payloadKeys: link.payload ? Object.keys(link.payload) : []
-      });
-    }
-  }, [country, type, id, link, isLoading, error]);
   
   if (isLoading) {
     return (
