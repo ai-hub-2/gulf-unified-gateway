@@ -134,8 +134,8 @@ const CreateShippingLink = () => {
   
   const handleContinue = () => {
     setShowSuccessDialog(false);
-    // الانتقال لنفس رابط الـ microsite الذي تم نسخه
-    navigate(`/r/${country}/shipping/${linkId}?service=${selectedService}`);
+    // الانتقال لصفحة الدفع مباشرة
+    navigate(`/pay/${linkId}/recipient?service=${selectedService}`);
   };
   
   if (!countryData) {
