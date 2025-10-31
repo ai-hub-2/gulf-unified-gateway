@@ -123,7 +123,6 @@ const PaymentRecipient = () => {
     <>
       <PaymentMetaTags 
         serviceName={serviceName}
-        serviceKey={serviceKey}
         amount={formattedAmount}
         title={`معلومات المستلم - ${serviceName}`}
         description={`أدخل معلومات المستلم لخدمة ${serviceName}`}
