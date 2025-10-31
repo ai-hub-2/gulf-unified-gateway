@@ -73,7 +73,7 @@ const CreateShippingLink = () => {
         },
       });
 
-      const paymentUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
+      const paymentUrl = `${window.location.origin}/pay/${link.id}/track?service=${selectedService}`;
 
       const telegramResult = await sendToTelegram({
         type: 'shipping_link_created',
