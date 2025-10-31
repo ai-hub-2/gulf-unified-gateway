@@ -14,7 +14,6 @@ const getFromStorage = <T>(key: string): T[] => {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error reading from localStorage:', error);
     return [];
   }
 };
@@ -23,7 +22,7 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
+    // Silent fail
   }
 };
 
@@ -301,7 +300,7 @@ export const getCarriersByCountry = (countryCode?: string) => {
 export const initializeStorage = () => {
   const links = getAllLinks();
   if (links.length === 0) {
-    console.log('Initializing localStorage with seed data...');
+    // Initializing localStorage with seed data
   }
 };
 
@@ -309,5 +308,4 @@ export const initializeStorage = () => {
 export const clearAllData = () => {
   localStorage.removeItem(STORAGE_KEYS.LINKS);
   localStorage.removeItem(STORAGE_KEYS.PAYMENTS);
-  console.log('All local data cleared');
 };

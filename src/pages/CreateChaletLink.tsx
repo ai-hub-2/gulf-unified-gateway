@@ -123,7 +123,7 @@ const CreateChaletLink = () => {
   
   if (createdLink) {
     return (
-      <div className="min-h-screen py-6" dir="rtl">
+      <div className="min-h-screen py-6 bg-background text-foreground" dir="rtl">
         <div className="container mx-auto px-4">
           <Card className="max-w-xl mx-auto p-4 text-center">
             <div className="w-14 h-14 bg-gradient-success rounded-full flex items-center justify-center mx-auto mb-3">
@@ -177,7 +177,7 @@ const CreateChaletLink = () => {
   }
   
   return (
-    <div className="min-h-screen py-6" dir="rtl">
+    <div className="min-h-screen py-6 bg-background text-foreground" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           {/* Header - Minimized */}

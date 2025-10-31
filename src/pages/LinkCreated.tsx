@@ -122,7 +122,7 @@ const LinkCreated = () => {
 
   return (
     <div 
-      className="min-h-screen py-12 bg-gradient-to-b from-background to-secondary/20" 
+      className="min-h-screen py-12 bg-background text-foreground" 
       dir="rtl"
     >
       <div className="container mx-auto px-4 max-w-3xl">

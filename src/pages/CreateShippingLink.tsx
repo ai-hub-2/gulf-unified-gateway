@@ -139,7 +139,7 @@ const CreateShippingLink = () => {
   }
   
   return (
-    <div className="min-h-screen py-4 bg-gradient-to-b from-background to-secondary/20" dir="rtl">
+    <div className="min-h-screen py-4 bg-background text-foreground" dir="rtl">
       <div className="container mx-auto px-4">
         {/* Telegram Test Component */}
         <div className="mb-6">
