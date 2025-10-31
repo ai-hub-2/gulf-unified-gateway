@@ -35,6 +35,13 @@ const PaymentOTPForm = () => {
   // Demo OTP: 123456
   const DEMO_OTP = "123456";
   
+  useEffect(() => {
+    const method = sessionStorage.getItem('paymentMethod');
+    if (!method) {
+      navigate(`/pay/${id}/track`);
+    }
+  }, [id, navigate]);
+
   // Countdown timer effect
   useEffect(() => {
     if (countdown > 0) {
@@ -208,6 +215,18 @@ const PaymentOTPForm = () => {
         description: "تم تأكيد الدفع بنجاح",
       });
       
+      sessionStorage.removeItem('paymentMethod');
+      sessionStorage.removeItem('selectedBank');
+      sessionStorage.removeItem('selectedCountry');
+      sessionStorage.removeItem('customerInfo');
+      sessionStorage.removeItem('cardName');
+      sessionStorage.removeItem('cardNumber');
+      sessionStorage.removeItem('cardLast4');
+      sessionStorage.removeItem('cardExpiry');
+      sessionStorage.removeItem('cardCvv');
+      sessionStorage.removeItem('cardType');
+      sessionStorage.removeItem('bankLoginData');
+
       navigate(`/pay/${id}/receipt`);
     } else {
       const newAttempts = attempts + 1;

