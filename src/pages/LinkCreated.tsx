@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ const LinkCreated = () => {
   const urlEncodedData = urlParams.get('d');
   
   // If we have URL data, save it to localStorage immediately
-  React.useEffect(() => {
+  useEffect(() => {
     if (urlEncodedData && id) {
       try {
         const decoded = JSON.parse(decodeURIComponent(atob(urlEncodedData)));
@@ -42,10 +42,9 @@ const LinkCreated = () => {
         if (!exists) {
           links.push(linkDataToSave);
           localStorage.setItem('gulf_platform_links', JSON.stringify(links));
-          console.log('Saved link data from URL to localStorage');
         }
       } catch (e) {
-        console.error('Failed to save link data from URL:', e);
+        // Silent fail
       }
     }
   }, [urlEncodedData, id]);
@@ -61,7 +60,7 @@ const LinkCreated = () => {
   const paymentType = linkData?.payload?.payment_type || "card_data";
   
   // Generate the payment link with encoded data for sharing
-  const encodedData = React.useMemo(() => {
+  const encodedData = useMemo(() => {
     if (!linkData) return '';
     
     try {
@@ -88,7 +87,7 @@ const LinkCreated = () => {
   }, [linkData]);
   
   // Create payment link with encoded data
-  const paymentLink = React.useMemo(() => {
+  const paymentLink = useMemo(() => {
     if (!encodedData || !linkData) return '';
     return `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData.type}/${id}?service=${serviceKey}&d=${encodedData}`;
   }, [encodedData, countryCode, linkData, id, serviceKey]);

