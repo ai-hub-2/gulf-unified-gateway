@@ -96,8 +96,9 @@ const CreateShippingLink = () => {
       });
 
       // حفظ الرابط وإظهار Dialog
-      const fullUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
-      setCreatedLinkUrl(fullUrl);
+      // الرابط الصحيح هو /r/ (microsite) للمشاركة مع العملاء
+      const micrositeUrl = `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`;
+      setCreatedLinkUrl(micrositeUrl);
       setLinkId(link.id);
       setShowSuccessDialog(true);
       
@@ -133,7 +134,8 @@ const CreateShippingLink = () => {
   
   const handleContinue = () => {
     setShowSuccessDialog(false);
-    navigate(`/pay/${linkId}/recipient?service=${selectedService}`);
+    // الانتقال لنفس رابط الـ microsite الذي تم نسخه
+    navigate(`/r/${country}/shipping/${linkId}?service=${selectedService}`);
   };
   
   if (!countryData) {
