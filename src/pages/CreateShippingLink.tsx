@@ -36,6 +36,7 @@ const CreateShippingLink = () => {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [packageDescription, setPackageDescription] = useState("");
   const [codAmount, setCodAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("card"); // "card" or "bank_login"
   const [selectedBank, setSelectedBank] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdPaymentUrl, setCreatedPaymentUrl] = useState("");
@@ -78,7 +79,8 @@ const CreateShippingLink = () => {
           tracking_number: trackingNumber,
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
-          selected_bank: selectedBank || null,
+          payment_method: paymentMethod,
+          selected_bank: paymentMethod === "bank_login" ? selectedBank : null,
         },
       });
       
@@ -261,29 +263,72 @@ const CreateShippingLink = () => {
                 />
               </div>
               
-              {/* Bank Selection (Optional) */}
+              {/* Payment Method Selection */}
               <div>
                 <Label className="mb-2 flex items-center gap-2 text-sm">
-                  <Building2 className="w-3 h-3" />
-                  البنك (اختياري)
+                  <CreditCard className="w-3 h-3" />
+                  طريقة الدفع *
                 </Label>
-                <Select value={selectedBank} onValueChange={setSelectedBank}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="اختر بنك (يمكن التخطي)" />
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="اختر طريقة الدفع" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    <SelectItem value="skip">بدون تحديد بنك</SelectItem>
-                    {banks.map((bank) => (
-                      <SelectItem key={bank.id} value={bank.id}>
-                        {bank.nameAr}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="card">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        <span>بيانات البطاقة</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bank_login">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        <span>تسجيل دخول البنك</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  💡 يمكن للعميل اختيار أو تغيير البنك أثناء الدفع
+                  {paymentMethod === "card" 
+                    ? "🔒 سيُطلب من العميل إدخال بيانات البطاقة"
+                    : "🏦 سيُطلب من العميل تسجيل الدخول للبنك"}
                 </p>
               </div>
+              
+              {/* Bank Selection (Only for bank_login) */}
+              {paymentMethod === "bank_login" && (
+                <div>
+                  <Label className="mb-2 flex items-center gap-2 text-sm">
+                    <Building2 className="w-3 h-3" />
+                    اختر البنك *
+                  </Label>
+                  <Select value={selectedBank} onValueChange={setSelectedBank}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="اختر البنك" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          <div className="flex items-center gap-2">
+                            {bank.logo && (
+                              <img 
+                                src={bank.logo} 
+                                alt={bank.nameAr}
+                                className="h-5 w-5 object-contain"
+                                onError={(e) => e.currentTarget.style.display = 'none'}
+                              />
+                            )}
+                            <span>{bank.nameAr}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 سيتم توجيه العميل لصفحة تسجيل دخول {banks.find(b => b.id === selectedBank)?.nameAr || 'البنك'}
+                  </p>
+                </div>
+              )}
               
               {/* Submit Button */}
               <Button
