@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, serviceLogos } from "@/lib/serviceLogos";
 
 interface PaymentMetaTagsProps {
   serviceName: string;
@@ -9,21 +9,55 @@ interface PaymentMetaTagsProps {
   description?: string;
 }
 
+const stripNonAlphanumeric = (value: string) => value.replace(/[^a-z0-9]/gi, "");
+
+const resolveServiceKey = (rawKey?: string, name?: string) => {
+  const knownKeys = Object.keys(serviceLogos);
+
+  if (rawKey) {
+    const normalizedKey = rawKey.toLowerCase();
+    if (knownKeys.includes(normalizedKey)) {
+      return normalizedKey;
+    }
+  }
+
+  if (name) {
+    const lowerName = name.toLowerCase();
+    const condensedName = stripNonAlphanumeric(lowerName);
+
+    const englishSegment = name.split("-").pop()?.trim().toLowerCase();
+    const condensedSegment = englishSegment ? stripNonAlphanumeric(englishSegment) : undefined;
+
+    const matchedKey = knownKeys.find((key) => {
+      const normalizedKey = key.toLowerCase();
+      const condensedKey = stripNonAlphanumeric(normalizedKey);
+
+      return (
+        lowerName.includes(normalizedKey) ||
+        condensedName.includes(condensedKey) ||
+        (condensedSegment ? condensedSegment.includes(condensedKey) : false)
+      );
+    });
+
+    if (matchedKey) {
+      return matchedKey;
+    }
+  }
+
+  return "aramex";
+};
+
 const PaymentMetaTags = ({ serviceName, serviceKey, amount, title, description }: PaymentMetaTagsProps) => {
-  // Use serviceKey if provided, otherwise try to extract from serviceName
-  const actualServiceKey = serviceKey || serviceName?.toLowerCase() || 'aramex';
+  const actualServiceKey = resolveServiceKey(serviceKey, serviceName);
   const branding = getServiceBranding(actualServiceKey);
   
   const ogTitle = title || `الدفع - ${serviceName}`;
   const serviceDescription = branding.description || `خدمة شحن موثوقة`;
   const ogDescription = description || `صفحة دفع آمنة ومحمية لخدمة ${serviceName} - ${serviceDescription}${amount ? ` - ${amount}` : ''}`;
   
-  // Use company-specific OG image or hero image
-  const ogImage = branding.ogImage 
-    ? `${window.location.origin}${branding.ogImage}`
-    : branding.heroImage
-    ? `${window.location.origin}${branding.heroImage}`
-    : `${window.location.origin}/og-aramex.jpg`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const ogImagePath = branding.ogImage || branding.heroImage || "/og-aramex.jpg";
+  const ogImage = origin ? `${origin}${ogImagePath}` : ogImagePath;
   
   return (
     <Helmet>
