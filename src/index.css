@@ -8,34 +8,34 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dark Mode Only - Gulf Platform */
-    --background: 220 15% 15%;
-    --foreground: 40 10% 98%;
+    /* Lighter Theme - Gulf Platform */
+    --background: 220 20% 96%;
+    --foreground: 220 15% 10%;
 
-    --card: 220 15% 20%;
-    --card-foreground: 40 10% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 10%;
 
-    --popover: 220 15% 22%;
-    --popover-foreground: 40 10% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 10%;
 
-    --primary: 45 95% 60%;
-    --primary-foreground: 220 25% 8%;
+    --primary: 45 95% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 25%;
-    --secondary-foreground: 40 10% 98%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 15% 10%;
 
-    --muted: 220 15% 28%;
-    --muted-foreground: 40 5% 70%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 45 95% 60%;
-    --accent-foreground: 220 25% 8%;
+    --accent: 45 95% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 30%;
-    --input: 220 15% 18%;
-    --ring: 45 95% 60%;
+    --border: 220 15% 85%;
+    --input: 220 15% 92%;
+    --ring: 45 95% 50%;
 
     --radius: 0.75rem;
 
@@ -80,8 +80,11 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  body {
+  html,
+  body,
+  #root {
     @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
     font-feature-settings: 'cv11', 'ss01';
     font-family: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
