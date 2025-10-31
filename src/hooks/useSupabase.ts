@@ -148,18 +148,27 @@ export const useLink = (linkId?: string) => {
         const urlParams = new URLSearchParams(window.location.search);
         const encodedData = urlParams.get('d');
         
-        if (encodedData) {
+        console.log('Trying to restore from URL params...', {
+          hasParam: !!encodedData,
+          paramLength: encodedData?.length || 0
+        });
+        
+        if (encodedData && encodedData.length > 0) {
           try {
-            const decoded = JSON.parse(atob(encodedData));
+            const decoded = JSON.parse(decodeURIComponent(atob(encodedData)));
+            console.log('Successfully decoded link data:', decoded);
+            
             // Save to localStorage for future use
             data = localStorageClient.createLink({
               id: linkId,
               ...decoded
             });
-            console.log('Link restored from URL params');
+            console.log('Link restored from URL params and saved to localStorage');
           } catch (e) {
             console.error('Failed to decode link data from URL:', e);
           }
+        } else {
+          console.warn('No encoded data in URL or empty data parameter');
         }
       }
       

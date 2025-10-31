@@ -22,6 +22,34 @@ const LinkCreated = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Try to get data from URL params first (when just created)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlEncodedData = urlParams.get('d');
+  
+  // If we have URL data, save it to localStorage immediately
+  React.useEffect(() => {
+    if (urlEncodedData && id) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(atob(urlEncodedData)));
+        const linkDataToSave = {
+          id: id,
+          ...decoded
+        };
+        // Save to localStorage
+        const links = JSON.parse(localStorage.getItem('gulf_platform_links') || '[]');
+        const exists = links.find((l: any) => l.id === id);
+        if (!exists) {
+          links.push(linkDataToSave);
+          localStorage.setItem('gulf_platform_links', JSON.stringify(links));
+          console.log('Saved link data from URL to localStorage');
+        }
+      } catch (e) {
+        console.error('Failed to save link data from URL:', e);
+      }
+    }
+  }, [urlEncodedData, id]);
+  
   const { data: linkData, isLoading } = useLink(id);
   const [copied, setCopied] = useState(false);
 
@@ -33,28 +61,33 @@ const LinkCreated = () => {
   const paymentType = linkData?.payload?.payment_type || "card_data";
   
   // Generate the payment link with encoded data for sharing
-  const encodeLinkData = () => {
+  const encodedData = React.useMemo(() => {
+    if (!linkData) return '';
+    
     try {
       const dataToEncode = {
-        type: linkData?.type,
-        country_code: linkData?.country_code,
-        provider_id: linkData?.provider_id,
-        payload: linkData?.payload,
-        microsite_url: linkData?.microsite_url,
-        payment_url: linkData?.payment_url,
-        signature: linkData?.signature,
-        status: linkData?.status,
-        created_at: linkData?.created_at,
+        type: linkData.type,
+        country_code: linkData.country_code,
+        provider_id: linkData.provider_id,
+        payload: linkData.payload,
+        microsite_url: linkData.microsite_url,
+        payment_url: linkData.payment_url,
+        signature: linkData.signature,
+        status: linkData.status,
+        created_at: linkData.created_at,
       };
-      return btoa(JSON.stringify(dataToEncode));
+      const encoded = btoa(encodeURIComponent(JSON.stringify(dataToEncode)));
+      console.log('Encoded link data length:', encoded.length);
+      return encoded;
     } catch (e) {
       console.error('Failed to encode link data:', e);
       return '';
     }
-  };
+  }, [linkData]);
   
-  const encodedData = encodeLinkData();
-  const paymentLink = `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`;
+  const paymentLink = encodedData 
+    ? `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}&d=${encodedData}`
+    : `${window.location.origin}/r/${countryCode?.toLowerCase()}/${linkData?.type}/${id}?service=${serviceKey}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(paymentLink);
@@ -74,10 +107,34 @@ const LinkCreated = () => {
     navigate(`/create/${countryCode?.toLowerCase()}/shipping`);
   };
 
-  if (isLoading || !linkData) {
+  // Debug log
+  React.useEffect(() => {
+    if (linkData) {
+      console.log('LinkCreated - Link data loaded:', {
+        id: linkData.id,
+        type: linkData.type,
+        hasPayload: !!linkData.payload,
+        payloadKeys: linkData.payload ? Object.keys(linkData.payload) : []
+      });
+    }
+  }, [linkData]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <div className="animate-pulse text-xl">جاري التحميل...</div>
+      </div>
+    );
+  }
+
+  if (!linkData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <div className="text-4xl mb-4">❌</div>
+          <h2 className="text-xl font-bold mb-2">خطأ في تحميل البيانات</h2>
+          <p className="text-muted-foreground">لم يتم العثور على بيانات الرابط</p>
+        </div>
       </div>
     );
   }

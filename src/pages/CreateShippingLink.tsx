@@ -105,8 +105,21 @@ const CreateShippingLink = () => {
         });
       }
 
-      // Navigate to link created page
-      navigate(`/link-created/${link.id}`);
+      // Encode link data for sharing
+      const dataToEncode = {
+        type: link.type,
+        country_code: link.country_code,
+        provider_id: link.provider_id,
+        payload: link.payload,
+        microsite_url: link.microsite_url,
+        payment_url: link.payment_url,
+        signature: link.signature,
+        status: link.status,
+      };
+      const encodedData = btoa(encodeURIComponent(JSON.stringify(dataToEncode)));
+      
+      // Navigate to link created page with data
+      navigate(`/link-created/${link.id}?d=${encodedData}`);
     } catch (error) {
       console.error("Error creating link:", error);
     }
