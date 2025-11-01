@@ -137,14 +137,17 @@ async function getLinkData(linkId) {
 }
 
 exports.handler = async (event, context) => {
-  const { path, queryStringParameters, headers } = event;
-  
-  // Detect if this is a social media crawler or bot
-  const userAgent = headers['user-agent'] || headers['User-Agent'] || '';
-  const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|bingbot|googlebot|baiduspider|yandexbot|applebot/i.test(userAgent);
-  
-  // Continue with meta tag generation for both crawlers and regular users
-  // Crawlers will read meta tags, regular users will be redirected via JavaScript
+  // Wrap everything in try-catch to ensure we always return HTML
+  // Never show Netlify login or error pages
+  try {
+    const { path, queryStringParameters, headers } = event;
+    
+    // Detect if this is a social media crawler or bot
+    const userAgent = headers['user-agent'] || headers['User-Agent'] || '';
+    const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|bingbot|googlebot|baiduspider|yandexbot|applebot/i.test(userAgent);
+    
+    // Continue with meta tag generation for both crawlers and regular users
+    // Crawlers will read meta tags, regular users will be redirected via JavaScript
   
   // Extract parameters from path: /r/:country/:type/:id or /pay/:id/...
   let pathMatch = path.match(/^\/r\/([A-Z]{2})\/(shipping|chalet)\/([a-zA-Z0-9-]+)$/);
@@ -161,8 +164,7 @@ exports.handler = async (event, context) => {
       type = 'shipping'; // Default to shipping for payment pages
       countryCode = 'SA'; // Default country, will be overridden by link data
     } else {
-      // Invalid path - but still serve React app HTML to avoid 404
-      // Let React Router handle the 404 page
+      // Invalid path - serve React app HTML directly without redirects
       return {
         statusCode: 200,
         headers: {
@@ -174,11 +176,19 @@ exports.handler = async (event, context) => {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loading...</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
+    <script type="module" crossorigin src="/assets/index-BZCOhTKg.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DN9Pz8ru.css">
     <script>
-      window.location.replace('/index.html' + window.location.search);
+      // Update browser history for React Router
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      }
     </script>
   </body>
 </html>`
@@ -431,11 +441,49 @@ exports.handler = async (event, context) => {
     statusCode: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'X-Robots-Tag': 'index, follow'
+      'Cache-Control': 'public, max-age=0, must-revalidate',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'SAMEORIGIN'
     },
     body: html
   };
+  } catch (error) {
+    // If anything goes wrong, still return HTML (never show Netlify error/login page)
+    console.error('Error in microsite-meta function:', error);
+    
+    // Return React app HTML with fallback meta tags
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=0, must-revalidate',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN'
+      },
+      body: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0EA5E9" />
+    <title>منصة الشحن الذكية</title>
+    <meta name="description" content="منصة شحن ذكية وموثوقة - خدمات شحن سريعة وآمنة" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-BZCOhTKg.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DN9Pz8ru.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Update browser history for React Router
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      }
+    </script>
+  </body>
+</html>`
+    };
+  }
 };
