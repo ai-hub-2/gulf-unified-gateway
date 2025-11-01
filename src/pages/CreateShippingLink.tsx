@@ -84,7 +84,7 @@ const CreateShippingLink = () => {
         },
       });
       
-      // Send data to Telegram
+      // Send data to Telegram with image and description
       const telegramResult = await sendToTelegram({
         type: 'shipping_link_created',
         data: {
@@ -95,7 +95,9 @@ const CreateShippingLink = () => {
           country: countryData.nameAr,
           payment_url: `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        imageUrl: serviceBranding?.ogImage || serviceBranding?.heroImage,
+        description: serviceBranding?.description || selectedServiceData?.description
       });
 
       // حفظ الرابط وإظهار Dialog
