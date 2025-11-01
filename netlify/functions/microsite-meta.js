@@ -343,6 +343,7 @@ exports.handler = async (event, context) => {
   }
   
   // Build the React app HTML with proper meta tags and asset loading
+  // This HTML will be served directly - no redirects, no Netlify login pages
   const reactAppHtml = `<!doctype html>
 <html lang="en">
   <head>
@@ -358,6 +359,28 @@ exports.handler = async (event, context) => {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
     ${styleTag}
+    
+    <!-- Open Graph / Facebook / WhatsApp Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${fullUrl}" />
+    <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+    <meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />
+    <meta property="og:image" content="${fullOgImage}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:site_name" content="نظام الدفع الآمن" />
+    <meta property="og:locale" content="ar_AR" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="${fullUrl}" />
+    <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+    <meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}" />
+    <meta name="twitter:image" content="${fullOgImage}" />
+    <meta name="twitter:image:alt" content="${title.replace(/"/g, '&quot;')}" />
+    
+    <link rel="canonical" href="${fullUrl}" />
   </head>
   <body>
     <div id="root"></div>
@@ -401,41 +424,8 @@ exports.handler = async (event, context) => {
   </body>
 </html>`;
   
-  // Inject meta tags into the HTML
-  let html = reactAppHtml;
-  
-  // Replace title (already set in template, but ensure it's correct)
-  html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
-  
-  // Replace or add meta description
-  html = html.replace(/<meta name="description" content=".*?"/i, `<meta name="description" content="${description.replace(/"/g, '&quot;')}"`);
-  
-  // Add OG tags before closing head tag
-  const ogTags = `
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="${fullUrl}" />
-  <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
-  <meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />
-  <meta property="og:image" content="${fullOgImage}" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:site_name" content="نظام الدفع الآمن" />
-  <meta property="og:locale" content="ar_AR" />
-  
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${fullUrl}" />
-  <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
-  <meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}" />
-  <meta name="twitter:image" content="${fullOgImage}" />
-  <meta name="twitter:image:alt" content="${title.replace(/"/g, '&quot;')}" />
-  
-  <link rel="canonical" href="${fullUrl}" />`;
-  
-  // Remove any existing OG tags and insert new ones
-  html = html.replace(/<meta property="og:.*?"[^>]*>/gi, '');
-  html = html.replace(/<meta name="twitter:.*?"[^>]*>/gi, '');
-  html = html.replace('</head>', `${ogTags}\n</head>`);
+  // The HTML already has meta tags injected, so we can return it directly
+  const html = reactAppHtml;
 
   return {
     statusCode: 200,
