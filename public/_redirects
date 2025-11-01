@@ -1,1 +1,6 @@
+# Route microsite and payment pages to Netlify function for proper meta tags (for social media crawlers)
+/r/*    /.netlify/functions/microsite-meta    200
+/pay/*    /.netlify/functions/microsite-meta    200
+
+# Fallback to React app for all other routes
 /*    /index.html   200

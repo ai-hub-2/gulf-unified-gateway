@@ -132,7 +132,14 @@ async function getLinkData(linkId) {
 }
 
 exports.handler = async (event, context) => {
-  const { path, queryStringParameters } = event;
+  const { path, queryStringParameters, headers } = event;
+  
+  // Detect if this is a social media crawler or bot
+  const userAgent = headers['user-agent'] || headers['User-Agent'] || '';
+  const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|bingbot|googlebot|baiduspider|yandexbot|applebot/i.test(userAgent);
+  
+  // Continue with meta tag generation for both crawlers and regular users
+  // Crawlers will read meta tags, regular users will be redirected via JavaScript
   
   // Extract parameters from path: /r/:country/:type/:id or /pay/:id/...
   let pathMatch = path.match(/^\/r\/([A-Z]{2})\/(shipping|chalet)\/([a-zA-Z0-9-]+)$/);
@@ -334,16 +341,15 @@ exports.handler = async (event, context) => {
   </div>
   
   <script>
-    // Redirect to actual app after a short delay
-    setTimeout(() => {
-      // For payment pages, redirect to the actual React app
-      if ('${path}'.startsWith('/pay/')) {
-        window.location.href = '${fullUrl}';
-      } else {
-        // For microsite pages, redirect to the actual React app
-        window.location.href = '${fullUrl}';
-      }
-    }, 2000);
+    // For crawlers, they'll read meta tags before executing this
+    // For regular users, redirect to React app with path as query parameter
+    if (!/facebookexternalhit|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|bingbot|googlebot|baiduspider|yandexbot|applebot/i.test(navigator.userAgent)) {
+      // Regular user - redirect to index.html with path as query parameter
+      // The React app will read this and navigate to the correct route
+      const path = '${path}';
+      const query = '${queryStringParameters ? '&' + new URLSearchParams(queryStringParameters).toString() : ''}';
+      window.location.replace('/index.html?_path=' + encodeURIComponent(path) + query);
+    }
   </script>
 </body>
 </html>`;
@@ -355,7 +361,7 @@ exports.handler = async (event, context) => {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
-      'X-Robots-Tag': 'noindex, nofollow'
+      'X-Robots-Tag': 'index, follow'
     },
     body: html
   };
