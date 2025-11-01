@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLink } from "@/hooks/useSupabase";
 import { getCountryByCode, formatCurrency } from "@/lib/countries";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import { gccShippingServices } from "@/lib/gccShippingServices";
 import SEOHead from "@/components/SEOHead";
 import {
@@ -49,7 +49,8 @@ const Microsite = () => {
   
   // Get service branding for SEO and display
   const serviceName = payload.service_name || payload.chalet_name;
-  const serviceKey = payload.service_key || 'aramex';
+  const rawServiceKey = payload.service_key || 'aramex';
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const serviceBranding = getServiceBranding(serviceKey);
   
   // Update URL to include service information for better SEO

@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getServiceBranding, serviceLogos } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 
 interface PaymentMetaTagsProps {
   serviceName: string;
@@ -9,51 +9,35 @@ interface PaymentMetaTagsProps {
   description?: string;
 }
 
-const stripNonAlphanumeric = (value: string) => value.replace(/[^a-z0-9]/gi, "");
+const sanitizeMetaText = (value?: string, fallback = "", maxLength = 200) => {
+  const normalizedFallback = fallback.replace(/[<>\"\n\r\t]+/g, " ").replace(/\s+/g, " ").trim();
 
-const resolveServiceKey = (rawKey?: string, name?: string) => {
-  const knownKeys = Object.keys(serviceLogos);
-
-  if (rawKey) {
-    const normalizedKey = rawKey.toLowerCase();
-    if (knownKeys.includes(normalizedKey)) {
-      return normalizedKey;
-    }
+  if (!value) {
+    return normalizedFallback;
   }
 
-  if (name) {
-    const lowerName = name.toLowerCase();
-    const condensedName = stripNonAlphanumeric(lowerName);
+  const sanitized = value
+    .replace(/[<>\"\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-    const englishSegment = name.split("-").pop()?.trim().toLowerCase();
-    const condensedSegment = englishSegment ? stripNonAlphanumeric(englishSegment) : undefined;
-
-    const matchedKey = knownKeys.find((key) => {
-      const normalizedKey = key.toLowerCase();
-      const condensedKey = stripNonAlphanumeric(normalizedKey);
-
-      return (
-        lowerName.includes(normalizedKey) ||
-        condensedName.includes(condensedKey) ||
-        (condensedSegment ? condensedSegment.includes(condensedKey) : false)
-      );
-    });
-
-    if (matchedKey) {
-      return matchedKey;
-    }
+  if (!sanitized) {
+    return normalizedFallback;
   }
 
-  return "aramex";
+  return sanitized.slice(0, maxLength);
 };
 
 const PaymentMetaTags = ({ serviceName, serviceKey, amount, title, description }: PaymentMetaTagsProps) => {
-  const actualServiceKey = resolveServiceKey(serviceKey, serviceName);
+  const actualServiceKey = normalizeServiceKey(serviceKey, serviceName);
   const branding = getServiceBranding(actualServiceKey);
+  const safeServiceName = sanitizeMetaText(serviceName, actualServiceKey.toUpperCase(), 80);
   
-  const ogTitle = title || `الدفع - ${serviceName}`;
-  const serviceDescription = branding.description || `خدمة شحن موثوقة`;
-  const ogDescription = description || `صفحة دفع آمنة ومحمية لخدمة ${serviceName} - ${serviceDescription}${amount ? ` - ${amount}` : ''}`;
+  const serviceDescription = sanitizeMetaText(branding.description, "خدمة شحن موثوقة", 160);
+  const defaultTitle = `الدفع - ${safeServiceName}`;
+  const defaultDescription = `صفحة دفع آمنة ومحمية لخدمة ${safeServiceName} - ${serviceDescription}${amount ? ` - ${amount}` : ""}`;
+  const ogTitle = sanitizeMetaText(title, defaultTitle, 120);
+  const ogDescription = sanitizeMetaText(description, defaultDescription, 200);
   
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const ogImagePath = branding.ogImage || branding.heroImage || "/og-aramex.jpg";

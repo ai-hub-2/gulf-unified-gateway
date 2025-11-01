@@ -183,9 +183,57 @@ export const serviceLogos: Record<string, { logo: string; colors: { primary: str
   }
 };
 
-export const getServiceBranding = (serviceName: string) => {
-  const key = serviceName.toLowerCase();
-  return serviceLogos[key] || {
+const stripNonAlphanumeric = (value: string) => value.replace(/[^a-z0-9]/gi, "");
+
+const knownServiceKeys = Object.keys(serviceLogos);
+
+const matchCondensedKey = (value: string) => {
+  const condensedValue = stripNonAlphanumeric(value);
+
+  return knownServiceKeys.find((key) => {
+    const normalizedKey = key.toLowerCase();
+    const condensedKey = stripNonAlphanumeric(normalizedKey);
+    return condensedValue === condensedKey || condensedValue.includes(condensedKey);
+  });
+};
+
+export const normalizeServiceKey = (rawKey?: string | null, fallbackName?: string | null) => {
+  if (rawKey) {
+    const normalizedKey = rawKey.trim().toLowerCase();
+
+    if (knownServiceKeys.includes(normalizedKey)) {
+      return normalizedKey;
+    }
+
+    const matchedKey = matchCondensedKey(normalizedKey);
+    if (matchedKey) {
+      return matchedKey;
+    }
+  }
+
+  if (fallbackName) {
+    const normalizedName = fallbackName.trim().toLowerCase();
+    const matchedKey = matchCondensedKey(normalizedName);
+    if (matchedKey) {
+      return matchedKey;
+    }
+
+    const englishSegment = fallbackName.split("-").pop()?.trim().toLowerCase();
+    if (englishSegment) {
+      const matchedKeyFromSegment = matchCondensedKey(englishSegment);
+      if (matchedKeyFromSegment) {
+        return matchedKeyFromSegment;
+      }
+    }
+  }
+
+  return "aramex";
+};
+
+export const getServiceBranding = (serviceIdentifier: string) => {
+  const normalizedKey = normalizeServiceKey(serviceIdentifier);
+
+  return serviceLogos[normalizedKey] || {
     logo: "",
     colors: {
       primary: "#0EA5E9",

