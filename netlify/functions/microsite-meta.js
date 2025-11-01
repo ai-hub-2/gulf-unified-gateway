@@ -399,51 +399,32 @@ exports.handler = async (event, context) => {
     body {
       font-family: 'Almarai', sans-serif;
       margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #0EA5E9, #06B6D4);
+      padding: 2rem;
+      background: #0EA5E9;
       color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
-    }
-    .loading {
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
     }
     .meta-info {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px;
-      backdrop-filter: blur(10px);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .meta-info h1 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+    .meta-info p {
+      font-size: 1rem;
+      line-height: 1.6;
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
-  <div class="loading">
-    <div class="meta-info">
-      <h1 style="font-size: 2rem; margin-bottom: 1rem;">${metaTitle}</h1>
-      <p style="font-size: 1.2rem; margin-bottom: 1rem;">${metaDescription}</p>
-      <p style="font-size: 0.9rem; opacity: 0.8;">جاري التحميل...</p>
-    </div>
+  <div class="meta-info">
+    <h1>${metaTitle}</h1>
+    <p>${metaDescription}</p>
   </div>
-  
   <script>
-    // Redirect to actual app after a short delay
-    setTimeout(() => {
-      // For payment pages, redirect to the actual React app
-      if ('${path}'.startsWith('/pay/')) {
-        window.location.href = ${redirectUrlJson};
-      } else {
-        // For microsite pages, redirect to the actual React app
-        window.location.href = ${redirectUrlJson};
-      }
-    }, 2000);
+    window.location.replace(${redirectUrlJson});
   </script>
 </body>
 </html>`;
