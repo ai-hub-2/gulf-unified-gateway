@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 // Service data mapping - matches the serviceLogos.ts file
 const serviceData = {
   aramex: {
@@ -156,20 +159,38 @@ exports.handler = async (event, context) => {
       type = 'shipping'; // Default to shipping for payment pages
       countryCode = 'SA'; // Default country, will be overridden by link data
     } else {
+      // Invalid path - but still serve React app HTML to avoid 404
+      // Let React Router handle the 404 page
       return {
-        statusCode: 404,
-        body: 'Not Found'
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+        body: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading...</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.location.replace('/index.html' + window.location.search);
+    </script>
+  </body>
+</html>`
       };
     }
   }
   
-  const country = countryData[countryCode];
-  
+  // If country not found, use default but don't return 404
+  let country = countryData[countryCode];
   if (!country) {
-    return {
-      statusCode: 404,
-      body: 'Country not found'
-    };
+    console.warn(`Country ${countryCode} not found, using default`);
+    // Use default country (Saudi Arabia)
+    country = countryData['SA'] || { nameAr: 'السعودية', name: 'Saudi Arabia' };
+    countryCode = 'SA';
   }
   
   // Try to get link data from database first
@@ -259,24 +280,89 @@ exports.handler = async (event, context) => {
   // Final debug logging
   console.log('Final meta tags:', { title, description, ogImage, serviceKey });
   
-  // Generate HTML with proper meta tags
-  const html = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0EA5E9" />
+  // Try to read the built index.html file
+  // In Netlify, the function runs from the repo root, so dist/index.html should be accessible
+  let reactAppHtml = '';
+  try {
+    // Try multiple possible paths
+    const possiblePaths = [
+      path.join(process.cwd(), 'dist', 'index.html'),
+      path.join(__dirname, '..', '..', 'dist', 'index.html'),
+      path.join(__dirname, '..', 'dist', 'index.html'),
+      './dist/index.html',
+      '../dist/index.html'
+    ];
+    
+    let found = false;
+    for (const indexPath of possiblePaths) {
+      try {
+        if (fs.existsSync(indexPath)) {
+          reactAppHtml = fs.readFileSync(indexPath, 'utf8');
+          found = true;
+          console.log('Found index.html at:', indexPath);
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (!found) {
+      throw new Error('index.html not found in any expected location');
+    }
+  } catch (error) {
+    console.error('Could not read index.html, using fallback:', error);
+    // Fallback: generate basic HTML with React app structure
+    reactAppHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0EA5E9" />
+    <title>${title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Redirect to index.html, React Router will handle the route
+      const originalPath = '${path}';
+      const query = '${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}';
+      // Use a flag to prevent redirect loop
+      if (!sessionStorage.getItem('_netlify_redirect')) {
+        sessionStorage.setItem('_netlify_redirect', '1');
+        window.location.replace('/index.html' + query);
+      } else {
+        // Update history for React Router
+        window.history.replaceState({}, '', originalPath + query);
+        sessionStorage.removeItem('_netlify_redirect');
+      }
+    </script>
+  </body>
+</html>`;
+  }
   
-  <!-- Basic Meta Tags -->
-  <title>${title}</title>
-  <meta name="description" content="${description}" />
-  <meta name="author" content="منصة الشحن الذكية" />
+  // Inject meta tags into the HTML
+  let html = reactAppHtml;
   
-  <!-- Open Graph / Facebook / WhatsApp -->
+  // Replace title
+  html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
+  
+  // Replace or add meta description
+  if (html.includes('<meta name="description"')) {
+    html = html.replace(/<meta name="description" content=".*?"/i, `<meta name="description" content="${description.replace(/"/g, '&quot;')}"`);
+  } else {
+    html = html.replace('</head>', `  <meta name="description" content="${description.replace(/"/g, '&quot;')}" />\n</head>`);
+  }
+  
+  // Replace or add OG tags
+  const ogTags = `
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${fullUrl}" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${description}" />
+  <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+  <meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />
   <meta property="og:image" content="${fullOgImage}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -284,75 +370,38 @@ exports.handler = async (event, context) => {
   <meta property="og:site_name" content="نظام الدفع الآمن" />
   <meta property="og:locale" content="ar_AR" />
   
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="${fullUrl}" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+  <meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}" />
   <meta name="twitter:image" content="${fullOgImage}" />
-  <meta name="twitter:image:alt" content="${title}" />
+  <meta name="twitter:image:alt" content="${title.replace(/"/g, '&quot;')}" />
   
-  <!-- Additional SEO -->
-  <meta name="robots" content="index, follow" />
-  <meta name="language" content="Arabic" />
-  <link rel="canonical" href="${fullUrl}" />
+  <link rel="canonical" href="${fullUrl}" />`;
   
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+  // Remove existing OG tags if any
+  html = html.replace(/<meta property="og:.*?"[^>]*>/gi, '');
+  html = html.replace(/<meta name="twitter:.*?"[^>]*>/gi, '');
   
-  <style>
-    body {
-      font-family: 'Almarai', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #0EA5E9, #06B6D4);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
-    }
-    .loading {
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .meta-info {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px;
-      backdrop-filter: blur(10px);
-    }
-  </style>
-</head>
-<body>
-  <div class="loading">
-    <div class="meta-info">
-      <h1 style="font-size: 2rem; margin-bottom: 1rem;">${title}</h1>
-      <p style="font-size: 1.2rem; margin-bottom: 1rem;">${description}</p>
-      <p style="font-size: 0.9rem; opacity: 0.8;">جاري التحميل...</p>
-    </div>
-  </div>
+  // Insert OG tags before closing head tag
+  html = html.replace('</head>', `${ogTags}\n</head>`);
   
+  // For regular users, ensure React Router can handle the route
+  // Add script to update history if needed
+  if (!isCrawler) {
+    const routeScript = `
   <script>
-    // For crawlers, they'll read meta tags before executing this
-    // For regular users, redirect to React app with path as query parameter
-    if (!/facebookexternalhit|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|bingbot|googlebot|baiduspider|yandexbot|applebot/i.test(navigator.userAgent)) {
-      // Regular user - redirect to index.html with path as query parameter
-      // The React app will read this and navigate to the correct route
-      const path = '${path}';
-      const query = '${queryStringParameters ? '&' + new URLSearchParams(queryStringParameters).toString() : ''}';
-      window.location.replace('/index.html?_path=' + encodeURIComponent(path) + query);
-    }
-  </script>
-</body>
-</html>`;
+    // Update browser history to show the correct path for React Router
+    (function() {
+      const originalPath = '${path}';
+      const query = '${queryStringParameters ? '?' + new URLSearchParams(queryStringParameters).toString() : ''}';
+      if (window.location.pathname !== originalPath) {
+        window.history.replaceState({}, '', originalPath + query);
+      }
+    })();
+  </script>`;
+    html = html.replace('</body>', `${routeScript}\n</body>`);
+  }
 
   return {
     statusCode: 200,
