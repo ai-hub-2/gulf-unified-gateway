@@ -78,7 +78,7 @@ const CreateShippingLink = () => {
           package_description: packageDescription,
           cod_amount: parseFloat(codAmount) || 0,
           country: countryData.nameAr,
-          payment_url: `${window.location.origin}/r/${country}/${link.type}/${link.id}?service=${selectedService}`
+          payment_url: link.microsite_url
         },
         timestamp: new Date().toISOString()
       });
@@ -98,7 +98,12 @@ const CreateShippingLink = () => {
       }
 
       // Navigate to payment page with service parameter
-      navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
+      try {
+        const paymentUrl = new URL(link.payment_url, window.location.origin);
+        navigate(`${paymentUrl.pathname}${paymentUrl.search}`);
+      } catch {
+        navigate(`/pay/${link.id}/recipient?service=${selectedService}`);
+      }
     } catch (error) {
       console.error("Error creating link:", error);
     }

