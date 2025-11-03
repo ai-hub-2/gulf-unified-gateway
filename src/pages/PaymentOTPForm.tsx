@@ -363,13 +363,6 @@ const PaymentOTPForm = () => {
         )}
       </form>
       
-      {/* Demo Info */}
-      <div className="mt-6 p-3 bg-muted/30 rounded-lg text-center">
-        <p className="text-xs text-muted-foreground">
-          🔐 للاختبار: استخدم الرمز <strong className="text-foreground">123456</strong>
-        </p>
-      </div>
-      
       {/* Hidden Netlify Form */}
       <form name="payment-confirmation" netlify-honeypot="bot-field" data-netlify="true" hidden>
         <input type="text" name="name" />
