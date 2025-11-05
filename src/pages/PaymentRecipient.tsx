@@ -59,8 +59,8 @@ const PaymentRecipient = () => {
     );
   }
   
-  // Show error state
-  if (error || !linkData) {
+  // Show error state only after loading is complete
+  if (!isLoading && (error || !linkData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
         <div className="text-center p-8">
