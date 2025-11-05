@@ -29,7 +29,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 const PaymentRecipient = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: linkData, isLoading, error } = useLink(id);
+  const { data: linkData } = useLink(id);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -46,32 +46,6 @@ const PaymentRecipient = () => {
   // Get country code from link data
   const countryCode = linkData?.country_code || "";
   const phoneValidation = getPhoneValidation(countryCode);
-  
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show error state only after loading is complete
-  if (!isLoading && (error || !linkData)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center p-8">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
-          <p className="text-muted-foreground mb-6">الرجاء التحقق من صحة الرابط</p>
-          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
-        </div>
-      </div>
-    );
-  }
   
   const heroImages: Record<string, string> = {
     'aramex': heroAramex,

