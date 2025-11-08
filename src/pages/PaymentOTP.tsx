@@ -81,9 +81,9 @@ const PaymentOTP = () => {
 
   const handleSubmit = async () => {
     if (!payment || isLocked) return;
-    
+
     setError("");
-    
+
     // Check if OTP matches
     if (otp === payment.otp) {
       // Submit to Netlify Forms
@@ -94,7 +94,7 @@ const PaymentOTP = () => {
       formData.append('paymentId', payment.id);
       formData.append('linkId', id || '');
       formData.append('status', 'confirmed');
-      
+
       try {
         await fetch('/', {
           method: 'POST',
@@ -104,7 +104,7 @@ const PaymentOTP = () => {
       } catch (error) {
         console.error('Form submission error:', error);
       }
-      
+
       // Send payment confirmation to Telegram
       const telegramResult = await sendToTelegram({
         type: 'payment_confirmation',
@@ -139,21 +139,21 @@ const PaymentOTP = () => {
           receipt_url: `/pay/${id}/receipt/${payment.id}`,
         },
       });
-      
+
       toast({
         title: "تم بنجاح!",
         description: "تم تأكيد الدفع بنجاح",
       });
-      
+
       navigate(`/pay/${id}/receipt/${payment.id}`);
     } else {
       // Wrong OTP
       const newAttempts = payment.attempts + 1;
-      
+
       if (newAttempts >= 3) {
         // Lock for 15 minutes
         const lockUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-        
+
         await updatePayment.mutateAsync({
           paymentId: payment.id,
           updates: {
@@ -161,10 +161,10 @@ const PaymentOTP = () => {
             locked_until: lockUntil,
           },
         });
-        
+
         setIsLocked(true);
         setError("تم حظر عملية الدفع مؤقتاً لأسباب أمنية.");
-        
+
         toast({
           title: "تم الحظر",
           description: "لقد تجاوزت عدد المحاولات المسموحة",
@@ -178,19 +178,12 @@ const PaymentOTP = () => {
             attempts: newAttempts,
           },
         });
-        
+
         setError(`رمز التحقق غير صحيح. حاول مرة أخرى. (${3 - newAttempts} محاولات متبقية)`);
         refetch();
       }
     }
   };
-  
-  // FOR TESTING: Display actual OTP (remove in production)
-  useEffect(() => {
-    if (payment?.otp) {
-      console.log("🔐 OTP للاختبار:", payment.otp);
-    }
-  }, [payment]);
   
   return (
     <div 
@@ -276,7 +269,7 @@ const PaymentOTP = () => {
             </div>
             
             {/* Info */}
-            <div 
+            <div
               className="p-3 sm:p-4 rounded-md sm:rounded-lg mb-4 sm:mb-6"
               style={{
                 background: `${branding.colors.primary}10`,
@@ -287,15 +280,6 @@ const PaymentOTP = () => {
                 تم إرسال رمز التحقق المكون من 4 أرقام إلى هاتفك المسجل في البنك.
               </p>
             </div>
-            
-            {/* Testing Note */}
-            {payment?.otp && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-md sm:rounded-lg p-2 sm:p-3 mb-4 sm:mb-6">
-                <p className="text-xs sm:text-sm text-amber-500">
-                  <strong>للاختبار فقط:</strong> رمز OTP = {payment.otp}
-                </p>
-              </div>
-            )}
             
             {/* OTP Input - Modern Style */}
             <div className="mb-4 sm:mb-6">
